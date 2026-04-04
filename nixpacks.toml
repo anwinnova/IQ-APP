@@ -7,14 +7,15 @@
 nixPkgs = [
   "ffmpeg",
   "libsndfile",
-  "stdenv.cc.cc.lib",  # provides libgomp (OpenMP) needed by ctranslate2
+  "stdenv.cc.cc.lib",
   "python311",
 ]
 
 [phases.install]
 cmds = [
-  "pip install --upgrade pip",
-  "pip install -r requirements.txt",
+  "python -m ensurepip --upgrade",
+  "python -m pip install --upgrade pip",
+  "python -m pip install -r requirements.txt",
 ]
 
 [start]
