@@ -3,6 +3,9 @@
 # faster-whisper needs: ffmpeg (audio decoding), libsndfile1, libgomp1 (OpenMP)
 # gTTS needs: internet access (built-in on Railway)
 
+[variables]
+NIXPACKS_PYTHON_VERSION = "3.11"
+
 [phases.setup]
 nixPkgs = [
   "ffmpeg",
@@ -13,9 +16,9 @@ nixPkgs = [
 
 [phases.install]
 cmds = [
-  "python -m ensurepip --upgrade",
-  "python -m pip install --upgrade pip",
-  "python -m pip install -r requirements.txt",
+  "python3 -m ensurepip --upgrade",
+  "python3 -m pip install --upgrade pip",
+  "python3 -m pip install -r requirements.txt",
 ]
 
 [start]
