@@ -8,17 +8,16 @@ NIXPACKS_PYTHON_VERSION = "3.11"
 
 [phases.setup]
 nixPkgs = [
+  "python311",
   "ffmpeg",
   "libsndfile",
   "stdenv.cc.cc.lib",
-  "python311",
 ]
 
 [phases.install]
 cmds = [
-  "python3 -m ensurepip --upgrade",
-  "python3 -m pip install --upgrade pip",
-  "python3 -m pip install -r requirements.txt",
+  "python3 -m pip install --upgrade pip --break-system-packages",
+  "python3 -m pip install -r requirements.txt --break-system-packages",
 ]
 
 [start]
