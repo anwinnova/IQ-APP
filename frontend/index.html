@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>IQ — Elite AI Interview Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════ */
+:root,[data-theme="dark"]{
+  --bg:#06070d;--bg2:#0c0e18;--surface:#111422;--surface2:#181c2e;--surface3:#1f2440;
+  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.12);
+  --text:#f0f2ff;--text2:#8b93b8;--text3:#5a6180;
+  --gold:#c9a84c;--gold2:#e8c96a;--gold-glow:rgba(201,168,76,.18);
+  --accent:#4a7fff;--teal:#14b8a6;--red:#ef4444;--green:#22c55e;--yellow:#f59e0b;
+  --sh:0 0 0 1px var(--border),0 32px 64px rgba(0,0,0,.8);
+  --sh2:0 8px 32px rgba(0,0,0,.5);
+}
+[data-theme="light"]{
+  --bg:#fafafa;--bg2:#f4f5f9;--surface:#fff;--surface2:#f0f2f8;--surface3:#e8eaf5;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.12);
+  --text:#0f1117;--text2:#4a5068;--text3:#8892a8;
+  --gold:#a07830;--gold2:#c49640;--gold-glow:rgba(160,120,48,.12);
+  --sh:0 0 0 1px var(--border),0 20px 48px rgba(0,0,0,.1);
+  --sh2:0 4px 16px rgba(0,0,0,.08);
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{font-size:15px}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+h1,h2,h3{font-family:'Playfair Display',serif}
+
+/* ══════════════════════════════════════════════
+   CRITICAL PAGE SYSTEM — ALL BUGS FIXED HERE
+   The #pg-iv used display:grid!important which
+   broke display:none. Fixed by using visibility
+   + position instead for the interview page,
+   and using a data-attr system for all pages.
+══════════════════════════════════════════════ */
+.page{
+  display:none;
+  min-height:100vh;
+  flex-direction:column;
+}
+/* Only active page shows */
+.page.active{ display:flex; }
+
+/* Interview page special case: needs display:grid when active */
+#pg-iv{ display:none; grid-template-rows:56px 1fr 76px; height:100vh; overflow:hidden; background:#07080f; }
+#pg-iv.active{ display:grid; }
+
+@keyframes pgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.page.active{animation:pgIn .35s ease both}
+
+/* ══════════════════════════════════════════════
+   iOS SETTINGS-STYLE ANIMATED LOGO
+   — Rounded square icon like iOS app icons
+   — Multi-stop animated gradient cycling 4 colors
+   — "IQ" text with depth shadow
+   — Glow pulse animation
+══════════════════════════════════════════════ */
+.logo-icon{
+  width:38px; height:38px;
+  border-radius:10px;
+  position:relative; cursor:pointer; flex-shrink:0;
+  overflow:hidden;
+  animation:logoGlow 6s ease-in-out infinite;
+}
+.logo-icon-bg{
+  position:absolute; inset:0;
+  background:linear-gradient(
+    145deg,
+    #1e40af 0%,
+    #6d28d9 28%,
+    #be185d 55%,
+    #c9a84c 80%,
+    #1e40af 100%
+  );
+  background-size:280% 280%;
+  animation:logoBgCycle 7s ease-in-out infinite;
+  border-radius:inherit;
+}
+@keyframes logoBgCycle{
+  0%   { background-position:0% 0%     }
+  25%  { background-position:100% 0%   }
+  50%  { background-position:100% 100% }
+  75%  { background-position:0% 100%   }
+  100% { background-position:0% 0%     }
+}
+/* iOS inner shine */
+.logo-icon::before{
+  content:''; position:absolute;
+  top:0; left:0; right:0; height:45%;
+  background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,transparent 100%);
+  border-radius:10px 10px 0 0;
+  z-index:2; pointer-events:none;
+}
+/* Bottom shadow for depth */
+.logo-icon::after{
+  content:''; position:absolute;
+  bottom:0; left:0; right:0; height:30%;
+  background:linear-gradient(0deg,rgba(0,0,0,.2) 0%,transparent 100%);
+  z-index:2; pointer-events:none;
+}
+@keyframes logoGlow{
+  0%,100% { box-shadow:0 2px 10px rgba(30,64,175,.55), 0 1px 3px rgba(0,0,0,.4) }
+  33%     { box-shadow:0 2px 10px rgba(109,40,217,.55), 0 1px 3px rgba(0,0,0,.4) }
+  66%     { box-shadow:0 2px 10px rgba(201,168,76,.6),  0 1px 3px rgba(0,0,0,.4) }
+}
+.logo-icon-letter{
+  position:absolute; inset:0; z-index:3;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Playfair Display',serif;
+  font-size:.78rem; font-weight:700; color:#fff;
+  letter-spacing:-.03em;
+  text-shadow:0 1px 4px rgba(0,0,0,.55), 0 0 8px rgba(255,255,255,.2);
+  animation:logoLetterPulse 6s ease-in-out infinite;
+}
+@keyframes logoLetterPulse{
+  0%,100% { transform:scale(1) }
+  50%     { transform:scale(1.07) }
+}
+
+.logo-text{
+  font-family:'Playfair Display',serif;font-weight:700;
+  font-size:1.2rem;cursor:pointer;letter-spacing:-.01em;
+}
+.logo-text em{font-style:normal;color:var(--gold)}
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 48px;height:64px;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  background:rgba(6,7,13,.9);
+  transition:background .3s;
+}
+[data-theme="light"] .nav{background:rgba(250,250,250,.92)}
+
+.nav-left{display:flex;align-items:center;gap:12px}
+.nav-center{display:flex;align-items:center;gap:2px}
+.nav-right{display:flex;align-items:center;gap:8px}
+
+.nav-link{
+  padding:7px 14px;border:none;background:transparent;
+  color:var(--text2);font-family:'Outfit',sans-serif;
+  font-size:.78rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;
+  cursor:pointer;border-radius:7px;transition:color .2s,background .2s;
+}
+.nav-link:hover{color:var(--text);background:var(--surface2)}
+.nav-link.active-page{color:var(--gold)}
+
+.theme-toggle{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid var(--border2);background:var(--surface2);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;transition:all .2s;
+}
+.theme-toggle:hover{border-color:var(--gold)}
+
+.nav-avatar{
+  width:34px;height:34px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;
+  font-size:.76rem;font-weight:700;color:#fff;
+  cursor:pointer;border:2px solid var(--border2);transition:border-color .2s;
+}
+.nav-avatar.show{display:flex}
+.nav-avatar:hover{border-color:var(--gold)}
+
+.nav-logout{
+  padding:7px 13px;border:1px solid rgba(239,68,68,.2);
+  background:rgba(239,68,68,.07);color:var(--red);
+  border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;
+  font-size:.76rem;font-weight:500;display:none;align-items:center;gap:6px;
+  transition:all .2s;
+}
+.nav-logout.show{display:flex}
+.nav-logout:hover{background:rgba(239,68,68,.15)}
+
+.btn-gold{
+  padding:9px 20px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  border:none;border-radius:9px;color:#0a0800;
+  font-family:'Outfit',sans-serif;font-weight:700;font-size:.8rem;
+  letter-spacing:.03em;text-transform:uppercase;cursor:pointer;
+  transition:all .3s;box-shadow:0 3px 16px var(--gold-glow);
+}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(201,168,76,.35)}
+.btn-gold:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-gold.full{width:100%;padding:13px}
+.btn-gold.lg{padding:14px 32px;font-size:.9rem}
+
+.btn-outline{
+  padding:9px 20px;background:transparent;
+  border:1px solid var(--border2);color:var(--text);
+  border-radius:9px;font-family:'Outfit',sans-serif;
+  font-weight:500;font-size:.8rem;cursor:pointer;transition:all .2s;
+}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+.btn-outline.lg{padding:14px 32px;font-size:.9rem}
+
+.btn-ghost{
+  padding:9px 16px;background:var(--surface2);
+  border:1px solid var(--border);color:var(--text2);
+  border-radius:9px;font-family:'Outfit',sans-serif;
+  font-weight:500;font-size:.82rem;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:8px;justify-content:flex-start;
+}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+
+.btn-danger{
+  padding:9px 16px;background:rgba(239,68,68,.08);
+  border:1px solid rgba(239,68,68,.2);color:var(--red);
+  border-radius:9px;font-family:'Outfit',sans-serif;
+  font-size:.82rem;font-weight:500;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:8px;justify-content:flex-start;
+}
+.btn-danger:hover{background:rgba(239,68,68,.18)}
+
+/* ══════════════════════════════════════════════
+   SHARED LAYOUT
+══════════════════════════════════════════════ */
+.pt{padding-top:64px}
+.page-wrap{max-width:1160px;margin:0 auto;padding:0 40px}
+@media(max-width:768px){.page-wrap{padding:0 20px}}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;transition:background .3s}
+.card:hover{border-color:var(--border2)}
+.card-sm{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px}
+
+.label{font-size:.7rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px;display:block}
+.form-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;color:var(--text);font-family:'Outfit',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s,box-shadow .2s}
+.form-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
+textarea.form-input{resize:vertical;min-height:88px}
+.form-group{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.form-group:last-of-type{margin-bottom:0}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+@media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+
+.sec-pre{font-size:.72rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;display:block}
+.sec-h{font-family:'Playfair Display',serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:600;line-height:1.15;margin-bottom:14px;color:var(--text)}
+.sec-p{color:var(--text2);font-size:.92rem;line-height:1.8;max-width:540px}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:600;letter-spacing:.04em}
+.pill-gold{background:var(--gold-glow);color:var(--gold);border:1px solid rgba(201,168,76,.2)}
+.pill-teal{background:rgba(20,184,166,.1);color:var(--teal);border:1px solid rgba(20,184,166,.2)}
+.pill-blue{background:rgba(74,127,255,.1);color:var(--accent);border:1px solid rgba(74,127,255,.2)}
+.pill-green{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.pill-muted{background:var(--surface3);color:var(--text3);border:1px solid var(--border)}
+.pill-red{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+
+#toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:13px 18px;font-size:.84rem;transform:translateY(80px);opacity:0;transition:all .3s;box-shadow:var(--sh2);pointer-events:none;max-width:340px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:var(--teal)}
+#toast.err{border-color:var(--red)}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;animation:rot .6s linear infinite;display:inline-block}
+@keyframes rot{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes orbP{0%,100%{box-shadow:0 0 18px rgba(74,127,255,.3)}50%{box-shadow:0 0 38px rgba(74,127,255,.6)}}
+@keyframes orbS{from{transform:scale(1)}to{transform:scale(1.1)}}
+@keyframes micP{0%,100%{box-shadow:0 0 0 4px rgba(34,197,94,.18),0 0 0 8px rgba(34,197,94,.08)}50%{box-shadow:0 0 0 8px rgba(34,197,94,.18),0 0 0 16px rgba(34,197,94,.08)}}
+.hide{display:none!important}
+
+/* ══════════════════════════════════════════════
+   LANDING
+══════════════════════════════════════════════ */
+#pg-land{background:var(--bg);overflow-y:auto}
+.land-inner{padding-top:64px}
+
+.hero{min-height:calc(100vh - 64px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 40px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;z-index:0;background-image:linear-gradient(rgba(201,168,76,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.035) 1px,transparent 1px);background-size:80px 80px}
+.hero::after{content:'';position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(74,127,255,.08) 0%,transparent 60%),radial-gradient(ellipse 40% 40% at 80% 100%,rgba(201,168,76,.06) 0%,transparent 60%)}
+.hero-inner{position:relative;z-index:1;max-width:860px}
+
+.hero-eyebrow{display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(201,168,76,.25);border-radius:30px;padding:7px 20px;font-size:.72rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:var(--gold-glow);margin-bottom:30px}
+.hero-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:blink 2s infinite}
+.hero-h1{font-family:'Playfair Display',serif;font-size:clamp(2.4rem,6vw,4.2rem);font-weight:600;line-height:1.08;letter-spacing:-.02em;margin-bottom:24px;color:var(--text)}
+.hero-h1 span{background:linear-gradient(120deg,var(--gold),var(--gold2),#fff9e0,var(--gold));background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:shimmer 4s linear infinite}
+@keyframes shimmer{from{background-position:0%}to{background-position:200%}}
+.hero-sub{color:var(--text2);font-size:1.05rem;line-height:1.8;max-width:600px;margin:0 auto 40px;font-weight:300}
+.hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:60px}
+
+.hero-stats{display:flex;justify-content:center;border:1px solid var(--border2);border-radius:16px;overflow:hidden;background:var(--surface);max-width:580px;margin:0 auto}
+.h-stat{flex:1;padding:20px 24px;text-align:center;border-right:1px solid var(--border)}
+.h-stat:last-child{border-right:none}
+.h-stat-n{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:var(--gold);display:block;margin-bottom:4px}
+.h-stat-l{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+
+.land-feats{padding:100px 0;max-width:1160px;margin:0 auto;padding-left:40px;padding-right:40px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--border);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+@media(max-width:900px){.feat-grid{grid-template-columns:1fr}}
+.feat-item{background:var(--bg2);padding:34px 30px;transition:background .25s;position:relative;overflow:hidden}
+.feat-item::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s}
+.feat-item:hover{background:var(--surface2)}
+.feat-item:hover::before{opacity:1}
+.feat-num{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--surface3);line-height:1;margin-bottom:14px;transition:color .3s}
+.feat-item:hover .feat-num{color:rgba(201,168,76,.25)}
+.feat-title{font-family:'Playfair Display',serif;font-size:1.02rem;font-weight:600;margin-bottom:10px}
+.feat-desc{font-size:.82rem;color:var(--text2);line-height:1.75}
+.feat-tag{margin-top:16px}
+
+.land-proof{padding:80px 40px;border-top:1px solid var(--border);max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 2fr;gap:60px;align-items:center}
+@media(max-width:900px){.land-proof{grid-template-columns:1fr}}
+.proof-big{font-family:'Playfair Display',serif;font-size:5rem;font-weight:700;color:var(--gold);line-height:1}
+.proof-sub{font-size:.84rem;color:var(--text2);margin-top:10px;max-width:280px}
+.proof-items{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.proof-item{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px}
+.proof-item-n{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;color:var(--text);margin-bottom:5px}
+.proof-item-l{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+
+.land-ngo{margin:0 40px 80px;border:1px solid rgba(20,184,166,.2);border-radius:20px;padding:60px 48px;background:linear-gradient(135deg,rgba(20,184,166,.04),rgba(74,127,255,.04));text-align:center;max-width:1080px;margin-left:auto;margin-right:auto}
+.land-footer{border-top:1px solid var(--border);padding:36px;text-align:center;font-size:.76rem;color:var(--text3);background:var(--bg2)}
+
+/* ══════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════ */
+#pg-login,#pg-register{background:var(--bg);align-items:center;justify-content:center;padding:80px 20px}
+.auth-wrap{width:100%;max-width:440px}
+.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:22px;padding:40px 36px;box-shadow:var(--sh)}
+.auth-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:6px}
+.auth-sub{text-align:center;color:var(--text2);font-size:.86rem;margin-bottom:30px}
+.auth-switch{text-align:center;font-size:.8rem;color:var(--text3);margin-top:16px}
+.auth-switch a{color:var(--gold);cursor:pointer;font-weight:500}
+.auth-switch a:hover{text-decoration:underline}
+.auth-back{text-align:center;margin-top:8px}
+.auth-back a{font-size:.76rem;color:var(--text3);cursor:pointer}
+.auth-back a:hover{color:var(--text2)}
+
+/* ══════════════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════════════ */
+#pg-dash{background:var(--bg);overflow-y:auto}
+.dash-top{padding-top:64px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.dash-hdr{max-width:1160px;margin:0 auto;padding:28px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.dash-title{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:600}
+.dash-sub{font-size:.83rem;color:var(--text2);margin-top:4px}
+.dash-body{max-width:1160px;margin:0 auto;padding:28px 40px 80px}
+
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:900px){.stat-strip{grid-template-columns:1fr 1fr}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 18px}
+.stat-card-ico{font-size:1rem;margin-bottom:8px;opacity:.6}
+.stat-card-val{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;line-height:1;color:var(--text)}
+.stat-card-lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-top:6px}
+
+.dash-layout{display:grid;grid-template-columns:1fr 300px;gap:18px}
+@media(max-width:1000px){.dash-layout{grid-template-columns:1fr}}
+
+.chart-wrap{height:140px;display:flex;align-items:flex-end;gap:6px;padding-bottom:6px}
+.c-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.c-bar{width:100%;border-radius:4px 4px 0 0;min-height:4px;background:linear-gradient(180deg,var(--gold),rgba(201,168,76,.3));transition:height .6s ease;position:relative;cursor:pointer}
+.c-bar:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100%+6px);left:50%;transform:translateX(-50%);background:var(--surface3);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;font-size:.68rem;white-space:nowrap;pointer-events:none;font-family:'Outfit',sans-serif;color:var(--text)}
+.c-lbl{font-size:.58rem;color:var(--text3);text-align:center;max-width:38px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.skill-row{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+.skill-name{font-size:.76rem;color:var(--text2);width:90px;flex-shrink:0}
+.skill-track{flex:1;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.skill-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .8s ease}
+.skill-val{font-size:.72rem;font-weight:600;color:var(--gold);width:28px;text-align:right}
+
+.hist-table{width:100%;border-collapse:collapse}
+.hist-table th{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);padding:10px 16px;text-align:left;border-bottom:1px solid var(--border)}
+.hist-table td{padding:12px 16px;font-size:.82rem;border-bottom:1px solid var(--border)}
+.hist-table tr:last-child td{border-bottom:none}
+.hist-table tr:hover td{background:var(--surface2)}
+.ring-sm{width:32px;height:32px;border-radius:50%;background:conic-gradient(var(--gold) 0% var(--pct,50%),var(--surface3) var(--pct,50%));display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.ring-sm::before{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--surface)}
+.ring-sm span{position:relative;z-index:1;font-size:.58rem;font-weight:700;color:var(--gold)}
+
+/* ══════════════════════════════════════════════
+   SETUP
+══════════════════════════════════════════════ */
+#pg-setup{background:var(--bg);align-items:center;justify-content:center;padding:84px 20px 40px;overflow-y:auto}
+.setup-shell{width:100%;max-width:820px}
+.setup-header{text-align:center;margin-bottom:28px}
+.setup-card{background:var(--surface);border:1px solid var(--border2);border-radius:22px;overflow:hidden;box-shadow:var(--sh)}
+.stab-row{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);overflow-x:auto;scrollbar-width:none}
+.stab-row::-webkit-scrollbar{display:none}
+.stab{flex-shrink:0;padding:13px 18px;border:none;background:none;color:var(--text3);font-family:'Outfit',sans-serif;font-size:.76rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;white-space:nowrap}
+.stab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.stab:hover:not(.on){color:var(--text)}
+.spane{display:none;padding:26px 28px}
+.spane.on{display:block}
+.tgl-row{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.tgl{flex:1;padding:10px 14px;border:none;background:transparent;color:var(--text3);font-family:'Outfit',sans-serif;font-size:.86rem;font-weight:500;cursor:pointer;transition:all .2s}
+.tgl.on{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0800;font-weight:700}
+#years-wrap{display:none}
+#years-wrap.show{display:block}
+.diff-row{display:flex;gap:10px}
+.dbtn{flex:1;padding:10px 8px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);color:var(--text3);cursor:pointer;font-size:.8rem;text-align:center;font-family:'Outfit',sans-serif;font-weight:500;transition:all .2s}
+.dbtn.e{border-color:var(--teal);color:var(--teal);background:rgba(20,184,166,.07)}
+.dbtn.m{border-color:var(--yellow);color:var(--yellow);background:rgba(245,158,11,.07)}
+.dbtn.h{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.07)}
+.sl-row{display:flex;align-items:center;gap:14px}
+input[type=range]{-webkit-appearance:none;flex:1;height:4px;background:var(--surface3);border:none;border-radius:2px;padding:0;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));cursor:pointer;border:2px solid var(--bg)}
+.sl-num{background:var(--gold);color:#0a0800;padding:3px 10px;border-radius:6px;font-size:.8rem;font-weight:700;min-width:32px;text-align:center}
+.fzone{border:2px dashed var(--border2);border-radius:12px;padding:22px;text-align:center;cursor:pointer;position:relative;transition:all .2s}
+.fzone:hover{border-color:var(--gold);background:var(--gold-glow)}
+.fzone.ok{border-color:var(--teal);background:rgba(20,184,166,.04)}
+.fzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.fzone-ico{font-size:1.4rem;margin-bottom:6px;opacity:.5}
+.fzone p{font-size:.78rem;color:var(--text3)}
+.fzone-name{font-size:.76rem;color:var(--teal);margin-top:5px}
+.gap-banner{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px 18px;margin:0 28px 18px}
+.gap-banner h4{font-size:.76rem;font-weight:700;color:var(--yellow);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em}
+.gap-tags{display:flex;flex-wrap:wrap;gap:6px}
+.gap-tag{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:var(--yellow);border-radius:20px;padding:2px 10px;font-size:.69rem;font-weight:600}
+
+/* ══════════════════════════════════════════════
+   INTERVIEW PAGE — BUG FIXED
+   display:none / display:grid conflict resolved
+══════════════════════════════════════════════ */
+.iv-bar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border)}
+.iv-brand-sm{display:flex;align-items:center;gap:8px;font-family:'Playfair Display',serif;font-weight:700;font-size:.92rem}
+.iv-brand-sm em{font-style:normal;color:var(--gold)}
+.iv-meta{display:flex;align-items:center;gap:12px}
+.rec-pulse{width:7px;height:7px;border-radius:50%;background:var(--red);animation:blink 1.4s infinite}
+.iv-clock{font-size:.8rem;color:var(--text2);font-variant-numeric:tabular-nums;margin-left:6px}
+.prog-row{display:flex;align-items:center;gap:10px}
+.prog-track{width:110px;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--accent));border-radius:2px;transition:width .5s ease}
+.prog-lbl{font-size:.7rem;color:var(--text3);white-space:nowrap}
+.iv-stage{display:grid;grid-template-columns:1fr 220px;overflow:hidden;flex:1}
+.iv-main{display:flex;flex-direction:column;padding:12px;gap:10px;overflow:hidden;background:#07080f}
+.qbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;flex-shrink:0}
+.qbox-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.qbox-chip{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);padding:3px 10px;border:1px solid rgba(201,168,76,.25);border-radius:20px}
+.qbox-chip.fu{color:var(--yellow);border-color:rgba(245,158,11,.25)}
+.qbox-num{font-size:.7rem;color:var(--text3)}
+.qbox-text{font-size:1.04rem;font-weight:500;line-height:1.65;color:var(--text)}
+.iv-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1;overflow:hidden}
+.cap-box{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px;display:flex;flex-direction:column;overflow:hidden}
+.cap-hdr{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.cap-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s}
+.cap-body{flex:1;overflow-y:auto;font-size:.82rem;line-height:1.75;scrollbar-width:thin}
+.cap-body .fin{color:var(--text)}
+.cap-body .int{color:var(--text3);font-style:italic}
+.ans-box{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:14px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.ans-hdr{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:6px}
+.ans-ta{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Outfit',sans-serif;font-size:.84rem;line-height:1.7;resize:none}
+.ans-ta::placeholder{color:var(--text3)}
+.ans-foot{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.wav{display:flex;align-items:center;gap:2px;height:20px;flex:1}
+.wb{width:2.5px;border-radius:2px;background:var(--surface3);transition:height .07s}
+.wb.lit{background:var(--green)}
+.iv-pill{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.7rem;color:var(--text3);white-space:nowrap}
+.iv-side{display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--border);overflow:hidden}
+.rv-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.rv-tab{flex:1;padding:9px 4px;border:none;background:none;color:var(--text3);font-size:.62rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-family:'Outfit',sans-serif}
+.rv-tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.rv-pane{display:none;flex-direction:column;overflow-y:auto;padding:10px;gap:8px}
+.rv-pane.on{display:flex}
+.cam-tile{position:relative;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--border);aspect-ratio:4/3;flex-shrink:0}
+.cam-tile video{width:100%;height:100%;object-fit:cover;display:block}
+.cam-lbl{position:absolute;bottom:6px;left:7px;display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);border-radius:20px;padding:3px 9px 3px 7px;font-size:.62rem;font-weight:600}
+.cdot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.cdot.ai{background:var(--accent);animation:blink 1.4s infinite}
+.ai-tile{border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#0c1020,#1a2040);border:1px solid rgba(74,127,255,.2);aspect-ratio:4/3;flex-shrink:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;position:relative}
+.ai-orb{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:1.1rem;animation:orbP 3s ease-in-out infinite}
+.ai-orb.speaking{animation:orbS .4s ease-in-out infinite alternate}
+.ai-ntag{font-size:.64rem;font-weight:600;color:var(--text3)}
+.tip-box{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px}
+.tip-lbl{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin-bottom:5px}
+.tip-txt{font-size:.7rem;color:var(--text2);line-height:1.65}
+.s-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.s-row:last-child{border-bottom:none}
+.s-k{font-size:.68rem;color:var(--text3)}
+.s-v{font-size:.66rem;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--gold-glow);color:var(--gold)}
+.s-v.g{background:rgba(20,184,166,.1);color:var(--teal)}
+.s-v.y{background:rgba(245,158,11,.1);color:var(--yellow)}
+.q-map{display:flex;flex-wrap:wrap;gap:5px}
+.qdot{width:24px;height:24px;border-radius:5px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.62rem;color:var(--text3);font-weight:600}
+.qdot.cur{border-color:var(--gold);color:var(--gold);background:var(--gold-glow)}
+.qdot.done{border-color:var(--teal);color:var(--teal);background:rgba(20,184,166,.08)}
+.iv-bottom{background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:14px;padding:0 20px}
+.mic-btn{width:42px;height:42px;border-radius:50%;border:2px solid rgba(34,197,94,.25);background:rgba(34,197,94,.08);color:var(--green);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all .2s}
+.mic-btn.off{background:rgba(239,68,68,.08);color:var(--red);border-color:rgba(239,68,68,.25)}
+.mic-btn.active{box-shadow:0 0 0 5px rgba(34,197,94,.18),0 0 0 10px rgba(34,197,94,.07);animation:micP 1.2s ease-in-out infinite}
+.cam-btn,.end-btn{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;cursor:pointer;transition:all .2s}
+.cam-btn{border:1px solid var(--border2);background:var(--surface2);color:var(--text3)}
+.cam-btn:hover{border-color:var(--gold);color:var(--gold)}
+.end-btn{border:1px solid rgba(239,68,68,.2);background:rgba(239,68,68,.07);color:var(--red)}
+.end-btn:hover{background:rgba(239,68,68,.18)}
+.btn-submit-iv{padding:10px 26px;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:10px;color:#0a0800;font-family:'Outfit',sans-serif;font-weight:700;font-size:.84rem;cursor:pointer;transition:all .2s;box-shadow:0 2px 14px var(--gold-glow)}
+.btn-submit-iv:hover{transform:translateY(-1px);box-shadow:0 4px 24px rgba(201,168,76,.4)}
+.btn-submit-iv:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ══════════════════════════════════════════════
+   FEEDBACK
+══════════════════════════════════════════════ */
+#pg-fb{background:var(--bg);overflow-y:auto}
+.fb-wrap{max-width:1020px;margin:0 auto;padding:40px 40px 80px;display:flex;flex-direction:column;gap:20px}
+.fb-hero{text-align:center;padding:46px 28px 34px;background:var(--surface);border:1px solid var(--border);border-radius:20px}
+.score-ring{width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--gold) 0% var(--pct,50%),var(--surface3) var(--pct,50%));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;position:relative}
+.score-ring::before{content:'';position:absolute;inset:12px;border-radius:50%;background:var(--surface)}
+.score-inner{position:relative;z-index:1;text-align:center}
+.score-n{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--gold)}
+.score-d{font-size:.7rem;color:var(--text3)}
+.verdict{display:inline-block;padding:6px 18px;border-radius:20px;font-size:.88rem;font-weight:600;margin-bottom:12px}
+.v-ex{background:rgba(20,184,166,.12);color:var(--teal);border:1px solid rgba(20,184,166,.25)}
+.v-go{background:rgba(201,168,76,.12);color:var(--gold);border:1px solid rgba(201,168,76,.25)}
+.v-av{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+.v-po{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.fb-summary-txt{font-size:.9rem;color:var(--text2);max-width:540px;margin:0 auto;line-height:1.8}
+.sub-scores{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:22px}
+.sub-sc{text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 20px}
+.sub-sc-n{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700}
+.sub-sc-l{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-top:4px}
+.va-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.va-chip{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:.78rem}
+.fb-2col{display:grid;grid-template-columns:1fr 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+@media(max-width:660px){.fb-2col{grid-template-columns:1fr}}
+.fb-sec{padding:20px 22px;border-bottom:1px solid var(--border)}
+.fb-sec:nth-child(odd){border-right:1px solid var(--border)}
+.fb-sec h3{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:11px}
+.fb-sec ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+.fb-sec li{font-size:.82rem;padding:8px 12px;border-radius:8px;line-height:1.55}
+.li-s{background:rgba(20,184,166,.06);border-left:3px solid var(--teal)}
+.li-w{background:rgba(239,68,68,.06);border-left:3px solid var(--red)}
+.li-g{background:rgba(245,158,11,.06);border-left:3px solid var(--yellow)}
+.li-i{background:rgba(201,168,76,.06);border-left:3px solid var(--gold)}
+.qs-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.qs-head{padding:14px 20px;border-bottom:1px solid var(--border);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+.qs-item{padding:13px 20px;border-bottom:1px solid var(--border)}
+.qs-item:last-child{border-bottom:none}
+.qs-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:5px}
+.qs-q{font-size:.85rem;font-weight:500;flex:1}
+.qs-badge{font-family:'Playfair Display',serif;font-weight:700;font-size:.8rem;padding:2px 9px;border-radius:5px}
+.qs-fb{font-size:.76rem;color:var(--text2);line-height:1.55}
+.hire-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px 22px;display:flex;align-items:center;gap:16px}
+.hire-pill{padding:9px 20px;border-radius:9px;font-family:'Playfair Display',serif;font-weight:700;font-size:.9rem;white-space:nowrap}
+.hp-y{background:rgba(20,184,166,.12);color:var(--teal);border:1px solid rgba(20,184,166,.22)}
+.hp-m{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+.hp-n{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.hire-text{font-size:.84rem;color:var(--text2);line-height:1.65}
+.share-card{background:linear-gradient(135deg,rgba(201,168,76,.08),rgba(74,127,255,.06));border:1px solid rgba(201,168,76,.2);border-radius:20px;padding:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.share-card p{font-size:.84rem;color:var(--text2);max-width:380px;line-height:1.65}
+.rating-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px}
+.rating-card h2{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;margin-bottom:5px}
+.rating-card>p{font-size:.82rem;color:var(--text2);margin-bottom:18px}
+.stars-row{display:flex;gap:6px;margin-bottom:18px}
+.star{font-size:1.8rem;cursor:pointer;transition:transform .15s,filter .15s;filter:grayscale(1) opacity(.3);user-select:none}
+.star:hover,.star.lit{filter:grayscale(0) opacity(1);transform:scale(1.12)}
+.aspect-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.asp-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 10px;cursor:pointer;transition:border-color .2s,background .2s;text-align:center}
+.asp-item:hover{border-color:var(--gold)}
+.asp-item.on{border-color:var(--gold);background:var(--gold-glow)}
+.asp-ico{font-size:1.1rem;margin-bottom:4px}
+.asp-lbl{font-size:.7rem;font-weight:600;color:var(--text3)}
+.asp-item.on .asp-lbl{color:var(--gold)}
+.rate-thanks{font-size:.82rem;color:var(--teal);display:none;align-items:center;gap:6px}
+.rate-thanks.show{display:flex}
+.cp-steps-teaser{display:flex;flex-direction:column;gap:12px}
+.cp-step{display:flex;gap:14px;align-items:flex-start}
+.cp-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#0a0800;flex-shrink:0}
+.cp-txt{font-size:.84rem;color:var(--text2);line-height:1.6;padding-top:4px}
+
+/* ══════════════════════════════════════════════
+   SERVICES PAGE
+══════════════════════════════════════════════ */
+#pg-services{background:var(--bg);overflow-y:auto}
+.svc-hero{padding:120px 40px 80px;text-align:center;background:linear-gradient(180deg,var(--bg2) 0%,var(--bg) 100%);border-bottom:1px solid var(--border)}
+.svc-body{max-width:1160px;margin:0 auto;padding:60px 40px 80px}
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:48px}
+@media(max-width:800px){.svc-grid{grid-template-columns:1fr}}
+.svc-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:30px;transition:transform .2s,border-color .2s;position:relative;overflow:hidden}
+.svc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));opacity:0;transition:opacity .3s}
+.svc-card:hover{transform:translateY(-4px);border-color:rgba(201,168,76,.25)}
+.svc-card:hover::before{opacity:1}
+.svc-card-num{font-family:'Playfair Display',serif;font-size:3rem;font-weight:700;color:var(--surface3);line-height:1;margin-bottom:16px}
+.svc-card-title{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:600;margin-bottom:12px}
+.svc-card-desc{font-size:.85rem;color:var(--text2);line-height:1.8;margin-bottom:18px}
+.svc-card-tags{display:flex;flex-wrap:wrap;gap:7px}
+.svc-pricing{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:40px;text-align:center;margin-bottom:40px}
+.svc-pricing h2{font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:8px}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+@media(max-width:800px){.pricing-grid{grid-template-columns:1fr}}
+.price-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;text-align:center}
+.price-card.featured{border-color:var(--gold);background:linear-gradient(135deg,rgba(201,168,76,.06),rgba(74,127,255,.04))}
+.price-name{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:600;margin-bottom:8px}
+.price-amount{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--gold);margin-bottom:4px}
+.price-period{font-size:.76rem;color:var(--text3);margin-bottom:18px}
+.price-feats{list-style:none;text-align:left;margin-bottom:22px}
+.price-feats li{font-size:.82rem;color:var(--text2);padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start}
+.price-feats li:last-child{border-bottom:none}
+.price-feats li::before{content:'✓';color:var(--gold);font-weight:700;flex-shrink:0;margin-top:2px}
+
+/* ══════════════════════════════════════════════
+   CAREER PATH
+══════════════════════════════════════════════ */
+#pg-career{background:var(--bg);overflow-y:auto}
+.career-body{max-width:1100px;margin:0 auto;padding:100px 40px 80px}
+.road-step{display:flex;gap:22px;position:relative;padding-bottom:30px}
+.road-step:last-child{padding-bottom:0}
+.road-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.road-dot{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:700;color:#0a0800;z-index:1}
+.road-connector{flex:1;width:1px;background:linear-gradient(180deg,var(--gold),transparent);margin-top:4px}
+.road-content{flex:1;padding-top:5px}
+.road-month{font-size:.66rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+.road-action{font-size:.9rem;font-weight:600;margin-bottom:4px}
+.road-skill{font-size:.8rem;color:var(--text2)}
+.road-resource{font-size:.72rem;color:var(--teal);margin-top:4px}
+
+/* ══════════════════════════════════════════════
+   ABOUT
+══════════════════════════════════════════════ */
+#pg-about{background:var(--bg);overflow-y:auto}
+.about-hero{padding:120px 40px 80px;text-align:center;background:linear-gradient(180deg,var(--bg2),var(--bg));border-bottom:1px solid var(--border)}
+.about-body{max-width:1160px;margin:0 auto;padding:60px 40px 80px}
+.timeline{position:relative;padding-left:28px}
+.timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,var(--gold),transparent)}
+.tl-item{position:relative;margin-bottom:30px}
+.tl-item::before{content:'';position:absolute;left:-22px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--gold);border:2px solid var(--bg)}
+.tl-date{font-size:.68rem;font-weight:600;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.tl-title{font-size:.9rem;font-weight:600;margin-bottom:5px}
+.tl-desc{font-size:.8rem;color:var(--text2);line-height:1.65}
+/* ══════════════════════════════════════════════
+   CAREER PATH — Resource Links & Job Board
+══════════════════════════════════════════════ */
+.road-resource-row{
+  display:flex; flex-wrap:wrap; gap:7px;
+  margin-top:10px;
+}
+.res-link{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 12px;
+  border-radius:20px; font-size:.72rem; font-weight:600;
+  text-decoration:none; transition:all .2s; cursor:pointer;
+}
+.res-link.yt{
+  background:rgba(255,0,0,.08); color:#ff4444;
+  border:1px solid rgba(255,0,0,.18);
+}
+.res-link.yt:hover{ background:rgba(255,0,0,.16); transform:translateY(-1px); }
+.res-link.doc{
+  background:rgba(201,168,76,.08); color:var(--gold);
+  border:1px solid rgba(201,168,76,.2);
+}
+.res-link.doc:hover{ background:rgba(201,168,76,.16); transform:translateY(-1px); }
+.road-project{
+  font-size:.78rem; color:var(--teal);
+  margin-top:8px; padding:8px 12px;
+  background:rgba(20,184,166,.06); border-left:2px solid var(--teal);
+  border-radius:0 8px 8px 0;
+}
+.road-project::before{ content:"🛠 Build: "; font-weight:600; }
+
+/* Job board cards */
+.job-board-wrap{ margin-top:32px; }
+.job-board-header{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:18px; flex-wrap:wrap; gap:10px;
+}
+.job-board-header h3{ font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:600; }
+.job-platform-links{
+  display:flex; gap:8px; flex-wrap:wrap;
+}
+.job-plt-btn{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 14px; border-radius:8px; font-size:.75rem;
+  font-weight:600; text-decoration:none; cursor:pointer;
+  transition:all .2s; border:1px solid var(--border2);
+  background:var(--surface2); color:var(--text2);
+}
+.job-plt-btn:hover{ border-color:var(--gold); color:var(--gold); }
+.job-cards-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
+}
+@media(max-width:700px){ .job-cards-grid{ grid-template-columns:1fr; } }
+.job-card{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:14px; padding:18px;
+  transition:transform .2s, border-color .2s;
+  position:relative; overflow:hidden;
+}
+.job-card::before{
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,var(--gold),transparent);
+  opacity:0; transition:opacity .3s;
+}
+.job-card:hover{ transform:translateY(-2px); border-color:rgba(201,168,76,.25); }
+.job-card:hover::before{ opacity:1; }
+.job-card-role{ font-size:.9rem; font-weight:600; margin-bottom:4px; }
+.job-card-company{ font-size:.78rem; color:var(--gold); font-weight:600; margin-bottom:8px; }
+.job-card-tags{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
+.job-card-links{ display:flex; gap:8px; flex-wrap:wrap; }
+.job-search-btn{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 11px; border-radius:7px; font-size:.7rem; font-weight:600;
+  text-decoration:none; transition:all .2s;
+  background:var(--surface2); color:var(--text2); border:1px solid var(--border);
+}
+.job-search-btn:hover{ border-color:var(--gold); color:var(--gold); }
+
+/* Founder card */
+.founder-card{
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:20px; padding:32px;
+  display:flex; gap:28px; align-items:flex-start;
+  position:relative; overflow:hidden; margin-bottom:40px;
+}
+.founder-card::before{
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,var(--gold),var(--gold2),transparent);
+}
+.founder-avatar{
+  width:72px; height:72px; border-radius:18px;
+  background:linear-gradient(145deg,#1e40af 0%,#6d28d9 45%,#c9a84c 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Playfair Display',serif; font-size:1.8rem; font-weight:700;
+  color:#fff; flex-shrink:0; box-shadow:0 4px 18px rgba(30,64,175,.4);
+}
+.founder-body h3{ font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:600; margin-bottom:4px; }
+.founder-role{ font-size:.75rem; color:var(--gold); font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; display:block; }
+.founder-body p{ font-size:.88rem; color:var(--text2); line-height:1.82; }
+.founder-links{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+.founder-link{
+  display:inline-flex; align-items:center; gap:6px; padding:7px 15px;
+  background:var(--surface2); border:1px solid var(--border2); border-radius:9px;
+  font-size:.76rem; font-weight:500; color:var(--text2);
+  text-decoration:none; transition:all .2s;
+}
+.founder-link:hover{ border-color:var(--gold); color:var(--gold); }
+</style>
+</head>
+<body>
+
+<!-- ══ FIXED NAV ══════════════════════════════════════════ -->
+<nav class="nav">
+  <div class="nav-left">
+    <div class="logo-icon" onclick="goHome()">
+      <div class="logo-icon-bg"></div>
+      <div class="logo-icon-letter" style="font-size:.78rem;letter-spacing:-.03em;font-weight:700">IQ</div>
+    </div>
+    <div class="logo-text" onclick="goHome()"><em>IQ</em></div>
+  </div>
+  <div class="nav-center">
+    <button class="nav-link" onclick="navTo('pg-land')" id="nl-home">Home</button>
+    <button class="nav-link" onclick="navTo('pg-services')" id="nl-services">Services</button>
+    <button class="nav-link" onclick="navTo('pg-about')" id="nl-about">About</button>
+    <button class="nav-link" onclick="navTo('pg-support')">Support</button>
+    <button class="nav-link" onclick="navTo('pg-career')" id="nl-career" style="display:none">Career Path</button>
+    <button class="nav-link" onclick="navTo('pg-dash')" id="nl-dash" style="display:none">Dashboard</button>
+  </div>
+  <div class="nav-right">
+    <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">☀️</button>
+    <button class="nav-logout" id="nav-logout" onclick="doLogout()">Sign Out</button>
+    <div class="nav-avatar" id="nav-avatar" onclick="navTo('pg-dash')">?</div>
+    <button class="btn-outline" id="nav-login-btn" onclick="navTo('pg-login')" style="font-size:.76rem;padding:8px 14px">Sign In</button>
+    <button class="btn-gold" id="nav-signup-btn" onclick="navTo('pg-register')" style="padding:8px 16px;font-size:.76rem">Get Started</button>
+  </div>
+</nav>
+
+<!-- ══ LANDING ════════════════════════════════════════════ -->
+<div id="pg-land" class="page active">
+  <div class="land-inner">
+    <div class="hero">
+      <div class="hero-inner">
+        <div class="hero-eyebrow"><div class="hero-dot"></div>AI-Powered Interview Intelligence</div>
+        <h1 class="hero-h1">The Interview Coach<br>That <span>Thinks Like</span><br>Your Interviewer</h1>
+        <p class="hero-sub">IQ uses advanced AI to conduct realistic interviews, detect skill gaps, ask intelligent follow-up questions, and deliver the kind of feedback that actually helps you get hired.</p>
+        <div class="hero-actions">
+          <button class="btn-gold lg" onclick="navTo('pg-register')">Begin Your Preparation</button>
+          <button class="btn-outline lg" onclick="navTo('pg-services')">View Services</button>
+        </div>
+        <div class="hero-stats">
+          <div class="h-stat"><span class="h-stat-n">10,000+</span><div class="h-stat-l">Interviews Conducted</div></div>
+          <div class="h-stat"><span class="h-stat-n">94%</span><div class="h-stat-l">Offer Rate Improvement</div></div>
+          <div class="h-stat"><span class="h-stat-n">200+</span><div class="h-stat-l">Roles Covered</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="land-feats">
+      <div style="text-align:center;margin-bottom:52px">
+        <span class="sec-pre">Core Capabilities</span>
+        <h2 class="sec-h" style="margin:0 auto 14px">Engineered for the Modern Interview</h2>
+        <p class="sec-p" style="margin:0 auto">Every feature is built around one goal — giving you a measurable competitive edge.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat-item"><div class="feat-num">01</div><h3 class="feat-title">Adaptive AI Interviewer</h3><p class="feat-desc">The AI generates follow-up questions based on your answers in real time. Vague responses are challenged. Depth is rewarded. Exactly like a rigorous real interview.</p><div class="feat-tag"><span class="pill pill-gold">Unique Technology</span></div></div>
+        <div class="feat-item"><div class="feat-num">02</div><h3 class="feat-title">JD + Resume Intelligence</h3><p class="feat-desc">Upload your job description and resume. IQ detects skill gaps and crafts questions targeting precisely what this company is looking for.</p><div class="feat-tag"><span class="pill pill-teal">Deep Matching</span></div></div>
+        <div class="feat-item"><div class="feat-num">03</div><h3 class="feat-title">Multi-Dimension Scoring</h3><p class="feat-desc">Separate scores for communication, technical accuracy, and confidence — with a trend line that shows your improvement over time.</p><div class="feat-tag"><span class="pill pill-blue">Career Analytics</span></div></div>
+        <div class="feat-item"><div class="feat-num">04</div><h3 class="feat-title">Voice & Speech Analysis</h3><p class="feat-desc">IQ counts filler words, measures speaking pace, and transcribes answers in real time — giving precise feedback on how you communicate under pressure.</p><div class="feat-tag"><span class="pill pill-gold">Vocal Intelligence</span></div></div>
+        <div class="feat-item"><div class="feat-num">05</div><h3 class="feat-title">AI Career Path Generator</h3><p class="feat-desc">Enter your current skills and career goal. Receive a month-by-month learning roadmap with specific resources, target roles, and realistic salary expectations.</p><div class="feat-tag"><span class="pill pill-teal">Career Planning</span></div></div>
+        <div class="feat-item"><div class="feat-num">06</div><h3 class="feat-title">NGO Impact Mode</h3><p class="feat-desc">For every premium subscription, IQ sponsors one underprivileged student with full free access. Talent should never be limited by income.</p><div class="feat-tag"><span class="pill pill-green">Social Impact</span></div></div>
+      </div>
+    </div>
+    <div class="land-proof">
+      <div><div class="proof-big">94%</div><div class="proof-sub">of IQ users report significantly greater confidence after just three sessions.</div></div>
+      <div class="proof-items">
+        <div class="proof-item"><div class="proof-item-n">3x</div><div class="proof-item-l">More Follow-up Questions Than Competitors</div></div>
+        <div class="proof-item"><div class="proof-item-n">48h</div><div class="proof-item-l">Average Time to First Offer Post-Training</div></div>
+        <div class="proof-item"><div class="proof-item-n">200+</div><div class="proof-item-l">Technical Roles Supported</div></div>
+        <div class="proof-item"><div class="proof-item-n">1:1</div><div class="proof-item-l">Premium User Sponsors One Student</div></div>
+      </div>
+    </div>
+    <div class="land-ngo">
+      <span class="sec-pre">Our Commitment</span>
+      <h2 class="sec-h">IQ for Good</h2>
+      <p class="sec-p" style="margin:0 auto 16px">Millions of talented candidates cannot afford quality interview coaching. IQ's NGO Mode provides full platform access at zero cost — because the right preparation should never be a privilege.</p>
+      <p style="color:var(--teal);font-weight:600;font-size:.9rem;margin-bottom:28px">For every premium subscription — we sponsor one student. Permanently.</p>
+      <button class="btn-gold" style="padding:13px 28px" onclick="navTo('pg-register')">Join the Movement</button>
+    </div>
+    <div class="land-footer">&copy; 2026 IQ Technologies. All rights reserved. &nbsp;·&nbsp; Built to democratise elite interview coaching.</div>
+  </div>
+</div>
+
+<!-- ══ SERVICES ═══════════════════════════════════════════ -->
+<div id="pg-services" class="page">
+  <div class="svc-hero">
+    <span class="sec-pre">What We Offer</span>
+    <h1 class="sec-h" style="font-size:clamp(1.8rem,4vw,3rem);margin:0 auto 16px;max-width:680px">Complete Interview Preparation Services</h1>
+    <p class="sec-p" style="margin:0 auto">From AI mock interviews to personalised career roadmaps — everything you need to land the role you deserve.</p>
+  </div>
+  <div class="svc-body">
+    <span class="sec-pre">Core Services</span>
+    <h2 class="sec-h" style="font-size:1.4rem;margin-bottom:8px">What IQ Provides</h2>
+    <p class="sec-p" style="margin-bottom:32px">Six deeply integrated services that work together to maximise your interview performance.</p>
+    <div class="svc-grid">
+      <div class="svc-card"><div class="svc-card-num">01</div><h3 class="svc-card-title">AI Mock Interview Sessions</h3><p class="svc-card-desc">Full interview sessions conducted by an adaptive AI that asks follow-up questions based on your real-time answers. Covers behavioral, technical, and situational questions tailored to your role, difficulty level, and experience.</p><div class="svc-card-tags"><span class="pill pill-gold">Adaptive AI</span><span class="pill pill-blue">Voice Enabled</span><span class="pill pill-teal">Real-Time</span></div></div>
+      <div class="svc-card"><div class="svc-card-num">02</div><h3 class="svc-card-title">JD & Resume Deep Analysis</h3><p class="svc-card-desc">Upload your job description and resume. IQ's intelligence layer detects skill gaps, identifies missing qualifications, and generates interview questions specifically aligned to what the employer is looking for — and what you're missing.</p><div class="svc-card-tags"><span class="pill pill-gold">Gap Detection</span><span class="pill pill-teal">Personalised</span></div></div>
+      <div class="svc-card"><div class="svc-card-num">03</div><h3 class="svc-card-title">Multi-Dimension Performance Scoring</h3><p class="svc-card-desc">Every session scores you across Communication Clarity, Technical Accuracy, and Confidence — giving you a complete performance picture. Track all three dimensions over time to see exactly where you're improving and where to focus next.</p><div class="svc-card-tags"><span class="pill pill-blue">Analytics</span><span class="pill pill-muted">Progress Tracking</span></div></div>
+      <div class="svc-card"><div class="svc-card-num">04</div><h3 class="svc-card-title">Voice Analytics & Speech Coaching</h3><p class="svc-card-desc">Real-time transcription, filler-word detection (um, uh, like), and speaking speed analysis help you understand exactly how you sound under pressure — and how to improve your executive communication style.</p><div class="svc-card-tags"><span class="pill pill-gold">Voice AI</span><span class="pill pill-teal">Real-Time</span></div></div>
+      <div class="svc-card"><div class="svc-card-num">05</div><h3 class="svc-card-title">AI Career Path Generator</h3><p class="svc-card-desc">Enter your current skills and target role. Receive a personalised, month-by-month roadmap with recommended learning resources, intermediate roles, and realistic salary expectations — built by AI on your specific profile.</p><div class="svc-card-tags"><span class="pill pill-teal">Personalised</span><span class="pill pill-blue">Roadmap</span></div></div>
+      <div class="svc-card"><div class="svc-card-num">06</div><h3 class="svc-card-title">NGO Free Access Programme</h3><p class="svc-card-desc">For every premium user, IQ provides one underprivileged student with full platform access at zero cost. Our commitment to social equity is not marketing — it is built into the pricing model permanently.</p><div class="svc-card-tags"><span class="pill pill-green">Social Impact</span><span class="pill pill-muted">Always Free</span></div></div>
+    </div>
+
+    <div class="svc-pricing">
+      <span class="sec-pre">Pricing</span>
+      <h2>Simple, Transparent Plans</h2>
+      <p style="font-size:.85rem;color:var(--text2);margin-top:8px">No hidden charges. Cancel anytime.</p>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="price-name">Free</div>
+          <div class="price-amount">₹0</div>
+          <div class="price-period">Forever</div>
+          <ul class="price-feats">
+            <li>3 AI mock interviews per month</li>
+            <li>Basic feedback report</li>
+            <li>Voice transcription</li>
+            <li>Career path generator (1 use)</li>
+          </ul>
+          <button class="btn-outline" style="width:100%" onclick="navTo('pg-register')">Get Started</button>
+        </div>
+        <div class="price-card featured">
+          <div class="price-name">Professional</div>
+          <div class="price-amount">₹499</div>
+          <div class="price-period">per month</div>
+          <ul class="price-feats">
+            <li>Unlimited AI mock interviews</li>
+            <li>Full multi-dimension scoring</li>
+            <li>JD + Resume deep analysis</li>
+            <li>Voice analytics & speech coaching</li>
+            <li>Unlimited career path generation</li>
+            <li>Priority question generation</li>
+            <li>Sponsors 1 student automatically</li>
+          </ul>
+          <button class="btn-gold" style="width:100%;padding:12px" onclick="navTo('pg-register')">Start Free Trial</button>
+        </div>
+        <div class="price-card">
+          <div class="price-name">Enterprise</div>
+          <div class="price-amount">Custom</div>
+          <div class="price-period">contact us</div>
+          <ul class="price-feats">
+            <li>Everything in Professional</li>
+            <li>Team dashboard & analytics</li>
+            <li>Custom role libraries</li>
+            <li>HR / recruiter screening mode</li>
+            <li>API access</li>
+            <li>Dedicated support</li>
+          </ul>
+          <button class="btn-outline" style="width:100%">Contact Sales</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:40px;border:1px solid var(--border);border-radius:20px;background:var(--surface)">
+      <span class="sec-pre">Ready to Start?</span>
+      <h2 class="sec-h" style="font-size:1.4rem;margin:0 auto 14px;max-width:480px">Begin Your First Session Today</h2>
+      <p style="font-size:.86rem;color:var(--text2);margin-bottom:24px">No credit card required. Free tier available permanently.</p>
+      <button class="btn-gold" style="padding:14px 32px;font-size:.9rem" onclick="navTo('pg-register')">Create Free Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOGIN ══════════════════════════════════════════════ -->
+<div id="pg-login" class="page">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><div class="logo-icon" style="width:32px;height:32px"><div class="logo-icon-bg"></div><div class="logo-icon-letter" style="font-size:.7rem;letter-spacing:-.03em;font-weight:700">IQ</div></div><div class="logo-text" style="font-size:1.15rem"><em>IQ</em></div></div>
+      <div class="auth-sub">Welcome back. Sign in to continue.</div>
+      <div class="form-group"><span class="label">Email Address</span><input type="email" id="l-email" class="form-input" placeholder="you@company.com"/></div>
+      <div class="form-group"><span class="label">Password</span><input type="password" id="l-pass" class="form-input" placeholder="••••••••"/></div>
+      <button class="btn-gold full" id="btn-login" onclick="doLogin()" style="margin-top:10px">Sign In</button>
+      <div class="auth-switch">No account? <a onclick="navTo('pg-register')">Create one free</a></div>
+      <div class="auth-back"><a onclick="navTo('pg-land')">← Back to home</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ REGISTER ═══════════════════════════════════════════ -->
+<div id="pg-register" class="page">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo"><div class="logo-icon" style="width:32px;height:32px"><div class="logo-icon-bg"></div><div class="logo-icon-letter" style="font-size:.7rem;letter-spacing:-.03em;font-weight:700">IQ</div></div><div class="logo-text" style="font-size:1.15rem"><em>IQ</em></div></div>
+      <div class="auth-sub">Create your account — start practising in 60 seconds.</div>
+      <div class="form-group"><span class="label">Full Name</span><input type="text" id="r-name" class="form-input" placeholder="Your Name"/></div>
+      <div class="form-group"><span class="label">Email Address</span><input type="email" id="r-email" class="form-input" placeholder="you@company.com"/></div>
+      <div class="form-group"><span class="label">Password</span><input type="password" id="r-pass" class="form-input" placeholder="Minimum 6 characters"/></div>
+      <button class="btn-gold full" id="btn-reg" onclick="doRegister()" style="margin-top:10px">Create Account</button>
+      <div class="auth-switch">Already registered? <a onclick="navTo('pg-login')">Sign in</a></div>
+      <div class="auth-back"><a onclick="navTo('pg-land')">← Back to home</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══════════════════════════════════════════ -->
+<div id="pg-dash" class="page">
+  <div class="dash-top"><div class="dash-hdr"><div><div class="dash-title" id="dash-name">Welcome back</div><div class="dash-sub" id="dash-sub">Your performance at a glance</div></div><button class="btn-gold" onclick="navTo('pg-setup')">Begin New Interview</button></div></div>
+  <div class="dash-body">
+    <div class="stat-strip">
+      <div class="stat-card"><div class="stat-card-ico">◈</div><div class="stat-card-val" id="sc-total">—</div><div class="stat-card-lbl">Total Sessions</div></div>
+      <div class="stat-card"><div class="stat-card-ico">◆</div><div class="stat-card-val" id="sc-avg">—</div><div class="stat-card-lbl">Average Score</div></div>
+      <div class="stat-card"><div class="stat-card-ico">◉</div><div class="stat-card-val" id="sc-streak" style="color:var(--gold)">—</div><div class="stat-card-lbl">Day Streak</div></div>
+      <div class="stat-card"><div class="stat-card-ico">⬡</div><div class="stat-card-val" id="sc-best">—</div><div class="stat-card-lbl">Personal Best</div></div>
+    </div>
+    <div class="dash-layout">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card"><div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:4px">Score Progression</div><p style="font-size:.74rem;color:var(--text3);margin-bottom:16px">Last 10 interview sessions</p><div class="chart-wrap" id="score-chart"><div style="color:var(--text3);font-size:.82rem;align-self:center;flex:1;text-align:center">Complete sessions to see your progression</div></div></div>
+        <div class="card"><div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:16px">Performance Breakdown</div><div id="perf-bars"><div class="skill-row"><div class="skill-name">Communication</div><div class="skill-track"><div class="skill-fill" id="pb-comm" style="width:0%"></div></div><div class="skill-val" id="pv-comm">—</div></div><div class="skill-row"><div class="skill-name">Confidence</div><div class="skill-track"><div class="skill-fill" id="pb-conf" style="width:0%"></div></div><div class="skill-val" id="pv-conf">—</div></div><div class="skill-row"><div class="skill-name">Technical</div><div class="skill-track"><div class="skill-fill" id="pb-tech" style="width:0%"></div></div><div class="skill-val" id="pv-tech">—</div></div><div class="skill-row"><div class="skill-name">Overall</div><div class="skill-track"><div class="skill-fill" id="pb-ov" style="width:0%"></div></div><div class="skill-val" id="pv-ov">—</div></div></div></div>
+        <div class="card"><div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:16px">Session History</div><div id="hist-body"><div style="color:var(--text3);font-size:.85rem;text-align:center;padding:24px 0">No sessions yet. <a onclick="navTo('pg-setup')" style="color:var(--gold);cursor:pointer;font-weight:500">Begin your first →</a></div></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card" style="text-align:center"><div style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;color:var(--gold)" id="streak-num">0</div><div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)">Day Streak</div><div style="font-size:.78rem;color:var(--text2);margin-top:6px">Longest: <strong id="streak-long">0</strong> days</div><button class="btn-gold" style="margin-top:16px;width:100%;font-size:.8rem" onclick="navTo('pg-setup')">Practice Today</button></div>
+        <div class="card"><div style="font-family:'Playfair Display',serif;font-size:.92rem;margin-bottom:14px">Skill Performance</div><div id="skill-perf"><div style="color:var(--text3);font-size:.8rem">Practice to see skill data</div></div></div>
+        <div class="card"><div style="font-family:'Playfair Display',serif;font-size:.92rem;margin-bottom:14px">Quick Actions</div><div style="display:flex;flex-direction:column;gap:8px"><button class="btn-ghost" onclick="navTo('pg-setup')">New Interview</button><button class="btn-ghost" onclick="navTo('pg-career')">Career Path</button><button class="btn-ghost" onclick="navTo('pg-services')">Services</button><button class="btn-ghost" onclick="navTo('pg-about')">About IQ</button><button class="btn-danger" onclick="doLogout()">Sign Out</button></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETUP ══════════════════════════════════════════════ -->
+<div id="pg-setup" class="page">
+  <div class="setup-shell">
+    <div class="setup-header"><span class="sec-pre" style="display:block;text-align:center;margin-bottom:8px">Interview Configuration</span><h2 style="font-family:'Playfair Display',serif;font-size:1.6rem;text-align:center;margin-bottom:4px">Configure Your Session</h2><p style="color:var(--text2);text-align:center;font-size:.84rem">Tailored to your role, experience, job description and resume</p></div>
+    <div class="setup-card">
+      <div class="stab-row">
+        <button class="stab on" onclick="stab('basics',this)">Role & Skills</button>
+        <button class="stab"    onclick="stab('exp',this)">Experience</button>
+        <button class="stab"    onclick="stab('jd',this)">Job Description</button>
+        <button class="stab"    onclick="stab('res',this)">Resume</button>
+        <button class="stab"    onclick="stab('cfg',this)">Settings</button>
+      </div>
+      <div class="spane on" id="spane-basics"><div class="g2"><div class="form-group"><span class="label">Job Role *</span><input type="text" id="s-role" class="form-input" placeholder="e.g. Senior ML Engineer"/></div><div class="form-group"><span class="label">Key Skills * (comma separated)</span><input type="text" id="s-skills" class="form-input" placeholder="e.g. Python, TensorFlow, FastAPI"/></div></div></div>
+      <div class="spane" id="spane-exp"><div class="form-group"><span class="label">Experience Level</span><div class="tgl-row"><button class="tgl on" id="tgl-f" onclick="setExp('fresher')">Fresher / Graduate</button><button class="tgl" id="tgl-e" onclick="setExp('experienced')">Experienced Professional</button></div></div><div class="form-group" id="years-wrap"><span class="label">Years of Experience</span><div class="sl-row"><input type="range" id="sl-years" min="1" max="25" value="3" oninput="document.getElementById('v-years').textContent=this.value"/><span class="sl-num" id="v-years">3</span></div></div><div class="form-group"><span class="label">Difficulty Level</span><div class="diff-row"><button class="dbtn e" onclick="setDiff('easy',this)">Entry Level</button><button class="dbtn" onclick="setDiff('medium',this)">Professional</button><button class="dbtn" onclick="setDiff('hard',this)">Executive</button></div></div></div>
+      <div class="spane" id="spane-jd"><div class="form-group"><span class="label">Upload Job Description (PDF)</span><div class="fzone" id="jd-zone"><input type="file" id="jd-file" accept=".pdf,.txt" onchange="markFile('jd',this)"/><div class="fzone-ico">⬡</div><p>Drag & drop or click to select</p><div class="fzone-name" id="jd-name"></div></div></div><div class="form-group"><span class="label">Or Paste Job Description Text</span><textarea id="jd-text" class="form-input" placeholder="Paste the full job description here…"></textarea></div></div>
+      <div class="spane" id="spane-res"><div class="form-group"><span class="label">Upload Resume (PDF)</span><div class="fzone" id="res-zone"><input type="file" id="res-file" accept=".pdf,.txt" onchange="markFile('res',this)"/><div class="fzone-ico">◆</div><p>Drag & drop or click to select</p><div class="fzone-name" id="res-name"></div></div></div><div class="form-group"><span class="label">Or Paste Resume Text</span><textarea id="res-text" class="form-input" placeholder="Paste your resume here…"></textarea></div></div>
+      <div class="spane" id="spane-cfg"><div class="form-group"><span class="label">Number of Questions</span><div class="sl-row"><input type="range" id="sl-nq" min="3" max="15" value="5" oninput="document.getElementById('v-nq').textContent=this.value"/><span class="sl-num" id="v-nq">5</span></div></div></div>
+      <div class="gap-banner hide" id="gap-banner"><h4>Skill Gaps Detected</h4><div class="gap-tags" id="gap-tags"></div></div>
+      <div style="padding:0 28px 26px"><button class="btn-gold full" id="btn-start-iv" onclick="startInterview()" style="padding:14px">Begin Interview Session</button><div id="setup-status" style="font-size:.76rem;color:var(--text3);text-align:center;margin-top:10px"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ INTERVIEW ══════════════════════════════════════════ -->
+<!-- BUG FIX: Removed display:grid!important — using #pg-iv{display:none} / #pg-iv.active{display:grid} in CSS -->
+<div id="pg-iv" class="page">
+  <div class="iv-bar">
+    <div class="iv-brand-sm"><em>IQ</em></div>
+    <div class="iv-meta"><div class="rec-pulse"></div><span class="iv-clock" id="iv-clock">00:00</span></div>
+    <div class="prog-row"><div class="prog-track"><div class="prog-fill" id="iv-prog" style="width:0%"></div></div><span class="prog-lbl" id="iv-prog-lbl">0 / 0</span></div>
+  </div>
+  <div class="iv-stage">
+    <div class="iv-main">
+      <div class="qbox"><div class="qbox-top"><div class="qbox-chip" id="qbox-chip">AI Interviewer</div><div class="qbox-num" id="qbox-num">Q1</div></div><div class="qbox-text" id="iv-q-text">Preparing your session…</div></div>
+      <div class="iv-cols">
+        <div class="cap-box"><div class="cap-hdr"><div class="cap-dot" id="cap-dot"></div>Live Transcript</div><div class="cap-body" id="cap-body"></div></div>
+        <div class="ans-box"><div class="ans-hdr">Your Answer</div><textarea class="ans-ta" id="ans-ta" placeholder="Spoken answer appears here, or type manually…"></textarea><div class="ans-foot"><div class="wav" id="wav-bars"></div><div class="iv-pill" id="iv-status">Ready</div></div></div>
+      </div>
+    </div>
+    <div class="iv-side">
+      <div class="rv-tabs"><button class="rv-tab on" onclick="rvTab('cams',this)">View</button><button class="rv-tab" onclick="rvTab('info',this)">Info</button><button class="rv-tab" onclick="rvTab('map',this)">Map</button></div>
+      <div class="rv-pane on" id="rvp-cams">
+        <div class="cam-tile"><video id="camera" autoplay muted playsinline style="background:#000"></video><div class="cam-lbl"><div class="cdot"></div>You</div></div>
+        <div class="ai-tile"><div class="ai-orb" id="ai-orb" style="font-size:.72rem;letter-spacing:-.03em">IQ</div><div class="ai-ntag">IQ AI</div><div class="cam-lbl" style="position:absolute;bottom:6px;left:7px"><div class="cdot ai"></div>AI Interviewer</div></div>
+        <div class="tip-box"><div class="tip-lbl">Interview Tip</div><div class="tip-txt" id="iv-tip">Structure answers using STAR: Situation, Task, Action, Result.</div></div>
+      </div>
+      <div class="rv-pane" id="rvp-info"><div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px"><div class="s-row"><span class="s-k">Role</span><span class="s-v" id="si-role">—</span></div><div class="s-row"><span class="s-k">Level</span><span class="s-v" id="si-exp">—</span></div><div class="s-row"><span class="s-k">Difficulty</span><span class="s-v y" id="si-diff">—</span></div><div class="s-row"><span class="s-k">Questions</span><span class="s-v" id="si-total">—</span></div><div class="s-row"><span class="s-k">JD</span><span class="s-v g" id="si-jd">No</span></div><div class="s-row"><span class="s-k">Resume</span><span class="s-v g" id="si-res">No</span></div></div></div>
+      <div class="rv-pane" id="rvp-map"><div class="q-map" id="iv-q-map"></div></div>
+    </div>
+  </div>
+  <div class="iv-bottom">
+    <button class="mic-btn" id="mic-btn" onclick="toggleMic()">◉</button>
+    <button class="cam-btn" id="cam-btn" onclick="toggleCam()">⬡</button>
+    <button class="btn-submit-iv" id="btn-submit" onclick="submitAnswer()" disabled>Submit Answer</button>
+    <button class="end-btn" onclick="endInterview()" title="End session">✕</button>
+  </div>
+</div>
+
+<!-- ══ FEEDBACK ═══════════════════════════════════════════ -->
+<div id="pg-fb" class="page">
+  <div class="fb-wrap">
+    <div class="fb-hero"><div class="score-ring" id="fb-ring"><div class="score-inner"><div class="score-n" id="fb-score">—</div><div class="score-d">/10</div></div></div><div class="verdict" id="fb-verdict">—</div><div class="fb-summary-txt" id="fb-summary"></div><div class="sub-scores"><div class="sub-sc"><div class="sub-sc-n" id="fb-comm" style="color:var(--teal)">—</div><div class="sub-sc-l">Communication</div></div><div class="sub-sc"><div class="sub-sc-n" id="fb-conf" style="color:var(--gold)">—</div><div class="sub-sc-l">Confidence</div></div><div class="sub-sc"><div class="sub-sc-n" id="fb-tech" style="color:var(--accent)">—</div><div class="sub-sc-l">Technical</div></div></div><div class="va-row"><div class="va-chip"><span>Filler Words</span><strong id="va-fil">—</strong></div><div class="va-chip"><span>Speaking Speed</span><strong id="va-spd">—</strong></div><div class="va-chip"><span>Duration</span><strong id="va-dur">—</strong></div></div></div>
+    <div class="gap-banner hide" id="fb-gap-banner"><h4>Skill Gaps for This Role</h4><div class="gap-tags" id="fb-gap-tags"></div></div>
+    <div class="fb-2col"><div class="fb-sec"><h3>Strengths</h3><ul id="fb-str"></ul></div><div class="fb-sec"><h3>Weaknesses</h3><ul id="fb-wk"></ul></div><div class="fb-sec"><h3>Skill Gaps</h3><ul id="fb-gap"></ul></div><div class="fb-sec" style="border-bottom:none"><h3>How to Improve</h3><ul id="fb-imp"></ul></div></div>
+    <div class="qs-card"><div class="qs-head">Question-by-Question Analysis</div><div id="fb-qs"></div></div>
+    <div class="hire-card"><div class="hire-pill" id="fb-hire">—</div><div class="hire-text" id="fb-next"></div></div>
+    <div class="card" id="fb-career-card"><div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:10px">Suggested Next Steps</div><div class="cp-steps-teaser" id="fb-career-steps"></div><button class="btn-outline" style="margin-top:16px;font-size:.82rem" onclick="navTo('pg-career')">Generate Full Career Roadmap</button></div>
+    <div class="share-card"><div><div style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:6px">Share Your Progress</div><p>Share your score on LinkedIn to attract recruiters and demonstrate continuous growth.</p></div><button class="btn-gold" onclick="shareScore()">Share on LinkedIn</button></div>
+    <div class="rating-card"><h2>Rate This Session</h2><p>Your feedback shapes the next version of IQ.</p><div class="stars-row" id="stars-row"><span class="star" onclick="rateStar(1)">★</span><span class="star" onclick="rateStar(2)">★</span><span class="star" onclick="rateStar(3)">★</span><span class="star" onclick="rateStar(4)">★</span><span class="star" onclick="rateStar(5)">★</span></div><div class="aspect-grid"><div class="asp-item" onclick="toggleAspect(this,'questions')"><div class="asp-ico">◆</div><div class="asp-lbl">Questions</div></div><div class="asp-item" onclick="toggleAspect(this,'feedback')"><div class="asp-ico">⬡</div><div class="asp-lbl">Feedback</div></div><div class="asp-item" onclick="toggleAspect(this,'ui')"><div class="asp-ico">◉</div><div class="asp-lbl">Interface</div></div><div class="asp-item" onclick="toggleAspect(this,'ai')"><div class="asp-ico">◈</div><div class="asp-lbl">AI Quality</div></div><div class="asp-item" onclick="toggleAspect(this,'voice')"><div class="asp-ico">◎</div><div class="asp-lbl">Voice</div></div><div class="asp-item" onclick="toggleAspect(this,'value')"><div class="asp-ico">◇</div><div class="asp-lbl">Value</div></div></div><textarea class="form-input" id="rating-comment" style="margin-bottom:14px;min-height:68px" placeholder="Any specific suggestions? (optional)"></textarea><div style="display:flex;align-items:center;gap:14px"><button id="btn-rate" class="btn-gold" onclick="submitRating()">Submit Feedback</button><div class="rate-thanks" id="rate-thanks">Thank you for your feedback.</div></div></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn-gold" onclick="navTo('pg-setup')">Begin New Session</button><button class="btn-outline" onclick="navTo('pg-dash')">View Dashboard</button></div>
+  </div>
+</div>
+
+<!-- ══ CAREER PATH ════════════════════════════════════════ -->
+<div id="pg-career" class="page">
+  <div class="career-body">
+    <span class="sec-pre">Career Intelligence</span>
+    <h2 class="sec-h">AI Career Path Generator</h2>
+    <p class="sec-p" style="margin-bottom:36px">Enter your current profile and career goal. Get a month-by-month roadmap with YouTube tutorials, official documentation links, hands-on projects, and live job search links.</p>
+    <div class="card" style="margin-bottom:28px">
+      <div class="g2">
+        <div class="form-group"><span class="label">Current Skills</span><input type="text" id="cp-skills" class="form-input" placeholder="Python, Machine Learning, SQL…"/></div>
+        <div class="form-group"><span class="label">Career Goal</span><input type="text" id="cp-goal" class="form-input" placeholder="Senior ML Engineer at a FAANG company…"/></div>
+      </div>
+      <div class="form-group"><span class="label">Experience Level</span><div class="tgl-row"><button class="tgl on" id="cp-f" onclick="setCpExp('fresher',this)">Fresher / Graduate</button><button class="tgl" id="cp-e" onclick="setCpExp('experienced',this)">Experienced Professional</button></div></div>
+      <button class="btn-gold full" id="btn-cp" onclick="generateCareerPath()" style="margin-top:4px;padding:13px">Generate My Roadmap</button>
+    </div>
+
+    <div id="cp-result" style="display:none">
+      <!-- Header -->
+      <div class="card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:24px">
+          <div>
+            <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:600;margin-bottom:4px" id="cp-title">—</div>
+            <div style="color:var(--text2);font-size:.82rem" id="cp-timeline">—</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="cp-missing"></div>
+        </div>
+        <div id="cp-steps" style="display:flex;flex-direction:column;gap:0"></div>
+      </div>
+
+      <!-- Roles + Salary -->
+      <div class="g2" style="margin-bottom:20px">
+        <div class="card">
+          <div style="font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:14px">Target Roles</div>
+          <div id="cp-roles"></div>
+        </div>
+        <div class="card">
+          <div style="font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:8px">Expected Compensation</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--green)" id="cp-salary">—</div>
+          <div style="font-size:.74rem;color:var(--text3);margin-top:6px">Market estimate based on your goal role</div>
+        </div>
+      </div>
+
+      <!-- JOB BOARD SECTION -->
+      <div class="card job-board-wrap">
+        <div class="job-board-header">
+          <div>
+            <span class="sec-pre" style="margin-bottom:6px;display:block">Live Job Search</span>
+            <h3>Jobs Related to Your Career Path</h3>
+          </div>
+          <div class="job-platform-links" id="cp-platform-links">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+        <div class="job-cards-grid" id="cp-job-cards">
+          <!-- Populated by JS -->
+        </div>
+        <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:10px;font-size:.78rem;color:var(--text2);line-height:1.7">
+          ℹ️ Click any job card link to search on that platform. Links are generated based on your career goal and target role keywords.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ABOUT ══════════════════════════════════════════════ -->
+<div id="pg-about" class="page">
+  <div class="about-hero">
+    <span class="sec-pre">Our Story</span>
+    <h1 class="sec-h" style="font-size:clamp(1.8rem,4vw,3rem);margin:0 auto 16px;max-width:680px">The Intelligence Behind Your Next Offer</h1>
+    <p class="sec-p" style="margin:0 auto;max-width:560px">IQ was built on a single conviction: world-class interview coaching should not be a privilege. It should be available to every candidate who has the talent and the drive.</p>
+  </div>
+  <div class="about-body">
+    <span class="sec-pre">The Founders</span>
+    <h2 class="sec-h" style="font-size:1.4rem;margin-bottom:28px">The Vision &amp; The Builder</h2>
+
+    <!-- ── FOUNDER 1: Adaikkalaraj ── -->
+    <div class="founder-card" style="margin-bottom:24px">
+      <!-- Replace dad_photo.jpg with the actual photo file in your frontend/ folder -->
+      <div class="founder-avatar" id="avatar-dad"
+           style="background:linear-gradient(145deg,#14532d 0%,#166534 50%,#15803d 100%);overflow:hidden;padding:0">
+        <img src="/frontend/dad_photo.jpg" alt="Adaikkalaraj"
+             style="width:100%;height:100%;object-fit:cover;border-radius:inherit"
+             onerror="this.style.display='none';this.parentElement.querySelector('.avatar-initials').style.display='flex'">
+        <div class="avatar-initials" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#fff">AR</div>
+      </div>
+      <div class="founder-body" style="flex:1">
+        <h3>Adaikkalaraj</h3>
+        <span class="founder-role">Founder &amp; Chief Visionary Officer — IQ &nbsp;&middot;&nbsp; Senior Officer, TNSTC &nbsp;&middot;&nbsp; 28 Years of Public Service</span>
+        <p>Adaikkalaraj has dedicated 28 distinguished years to public service as a Senior Officer at the Tamil Nadu State Transport Corporation (TNSTC), one of India's largest state transport organisations. His career has been defined by an unwavering commitment to equity — ensuring that quality public services reach every citizen, regardless of background or geography.</p>
+        <p style="margin-top:12px">A farmer at heart and a civil servant by discipline, Adaikkalaraj carries the wisdom of ground-level reality — an understanding of what millions of working-class Indians truly need. His foundational belief is simple and powerful: talent and ambition should never be limited by economic circumstance. He envisioned IQ as the interview coach he wished every deserving candidate could have — one that is fair, intelligent, and accessible to all.</p>
+        <p style="margin-top:12px">His three decades of managing large-scale public operations, human resources, and government service delivery give IQ its moral compass and its social mission. Every feature, every free tier, and every NGO sponsorship in IQ reflects the values he has lived by.</p>
+        <div class="founder-links">
+          <span class="pill pill-gold" style="padding:7px 14px;font-size:.72rem">28 Years Public Service</span>
+          <span class="pill pill-teal" style="padding:7px 14px;font-size:.72rem">TNSTC Senior Officer</span>
+          <span class="pill pill-green" style="padding:7px 14px;font-size:.72rem">Social Equity Champion</span>
+          <span class="pill pill-muted" style="padding:7px 14px;font-size:.72rem">Farmer &amp; Visionary</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FOUNDER 2: Anwin Nova ── -->
+    <div class="founder-card">
+      <!-- Replace anwin_photo.jpg with your actual photo file in your frontend/ folder -->
+      <div class="founder-avatar" id="avatar-anwin"
+           style="background:linear-gradient(145deg,#1e40af 0%,#6d28d9 45%,#c9a84c 100%);overflow:hidden;padding:0">
+        <img src="/frontend/anwin_photo.jpg" alt="Anwin Nova"
+             style="width:100%;height:100%;object-fit:cover;border-radius:inherit"
+             onerror="this.style.display='none';this.parentElement.querySelector('.avatar-initials').style.display='flex'">
+        <div class="avatar-initials" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#fff">A</div>
+      </div>
+      <div class="founder-body" style="flex:1">
+        <h3>Anwin Nova</h3>
+        <span class="founder-role">Co-Founder &amp; Lead Engineer — IQ &nbsp;&middot;&nbsp; Aerospace Engineer, SASTRA University</span>
+        <p>Anwin Nova is an Aerospace Engineer from SASTRA University with a deep passion for building intelligent systems at the intersection of AI and real-world impact. Raised by a father whose entire career was dedicated to public service, Anwin grew up with an acute sense of what opportunity denied looks like — and a drive to fix it through technology.</p>
+        <p style="margin-top:12px">He has architected offline-first AI platforms using Llama 3.1 and ONNX, built multi-model intelligence engines with RAG pipelines for high-accuracy responses, and developed AI-driven job-matching platforms integrating NLP and machine learning. IQ is his most personal build — the technical answer to his father's lifelong social mission.</p>
+        <div class="founder-links">
+          <a class="founder-link" href="https://github.com/anwinnova" target="_blank" rel="noopener">&#x2B21; GitHub</a>
+          <a class="founder-link" href="https://www.linkedin.com/in/anwinnova-a-ba7b01375/" target="_blank" rel="noopener">&#x25C6; LinkedIn</a>
+          <span class="pill pill-gold" style="padding:7px 14px;font-size:.72rem">Aerospace &amp; AI</span>
+          <span class="pill pill-teal" style="padding:7px 14px;font-size:.72rem">LLM Builder</span>
+          <span class="pill pill-muted" style="padding:7px 14px;font-size:.72rem">SASTRA University</span>
+        </div>
+      </div>
+    </div>
+    <span class="sec-pre">Notable Work</span>
+    <h2 class="sec-h" style="font-size:1.3rem;margin-bottom:18px">Projects by the Founder</h2>
+    <div class="g2" style="margin-bottom:48px">
+      <div class="card"><div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:8px">Nova AI — Offline AI Platform</div><p style="font-size:.84rem;color:var(--text2);line-height:1.8;margin-bottom:12px">Architected an offline-first AI platform enabling LLM-based inference without internet connectivity, with memory-efficient inference pipelines optimised for edge devices.</p><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="pill pill-muted">Python</span><span class="pill pill-muted">FastAPI</span><span class="pill pill-muted">Llama 3.1</span><span class="pill pill-muted">ONNX</span><span class="pill pill-muted">LangChain</span></div></div>
+      <div class="card"><div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:8px">OmniAI — Multi-Model Intelligence Engine</div><p style="font-size:.84rem;color:var(--text2);line-height:1.8;margin-bottom:12px">Built a multi-model AI engine integrating RAG for high-accuracy responses with parallel inference workflows and real-time 2D-to-3D transformation under 4 seconds.</p><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="pill pill-muted">Ollama</span><span class="pill pill-muted">DeepSeek 6.7B</span><span class="pill pill-muted">Mistral</span><span class="pill pill-muted">RAG</span><span class="pill pill-muted">FastAPI</span></div></div>
+      <div class="card"><div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:8px">NovaHire AI — AI Job Search Platform</div><p style="font-size:.84rem;color:var(--text2);line-height:1.8;margin-bottom:12px">AI-driven job matching using NLP and ML ranking, with REST APIs improving recommendation accuracy by 40% and automated matching workflows.</p><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="pill pill-muted">Python</span><span class="pill pill-muted">Django</span><span class="pill pill-muted">ChatGPT</span><span class="pill pill-muted">GeminiLLM</span></div></div>
+      <div class="card"><div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:8px">Game Server Automation &amp; AI Infrastructure</div><p style="font-size:.84rem;color:var(--text2);line-height:1.8;margin-bottom:12px">FiveM multiplayer server with AI-assisted automation, Lua scripting for server logic, and high-availability backend architecture.</p><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="pill pill-muted">Python</span><span class="pill pill-muted">FiveM</span><span class="pill pill-muted">Linux</span><span class="pill pill-muted">Lua</span></div></div>
+    </div>
+    <div class="g2" style="margin-bottom:48px">
+      <div class="card"><span class="sec-pre">Mission</span><h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:12px">Democratise Elite Preparation</h3><p style="font-size:.85rem;color:var(--text2);line-height:1.8">We are building the interview coach that every candidate deserves — one that adapts, challenges, and grows with you. From students in tier-3 cities to professionals at leading companies.</p></div>
+      <div class="card"><span class="sec-pre">Impact</span><h3 style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:12px">One Subscription, One Student</h3><p style="font-size:.85rem;color:var(--text2);line-height:1.8">For every premium subscriber, IQ sponsors one underprivileged student with complete platform access. Talent is evenly distributed — opportunity is not. We are changing that equation.</p></div>
+    </div>
+    <span class="sec-pre">Product Roadmap</span>
+    <h2 class="sec-h" style="font-size:1.4rem;margin-bottom:8px">What We've Built &amp; What's Next</h2>
+    <p class="sec-p" style="margin-bottom:36px">A transparent view of where IQ stands and where it is going.</p>
+    <div class="timeline" style="margin-bottom:60px">
+      <div class="tl-item"><div class="tl-date">Completed</div><div class="tl-title">AI Mock Interview Engine</div><div class="tl-desc">Role-based question generation, voice answering, structured feedback with multiple scoring dimensions.</div></div>
+      <div class="tl-item"><div class="tl-date">Completed</div><div class="tl-title">JD + Resume Intelligence</div><div class="tl-desc">Skill gap detection from job descriptions, personalised questions based on resume content.</div></div>
+      <div class="tl-item"><div class="tl-date">Completed</div><div class="tl-title">Real-Time Follow-Up Questions</div><div class="tl-desc">AI challenges vague answers and digs deeper — precisely as a trained interviewer would.</div></div>
+      <div class="tl-item"><div class="tl-date">Completed</div><div class="tl-title">Voice Analytics &amp; Speech Analysis</div><div class="tl-desc">Filler word detection, speaking speed analysis, real-time transcription.</div></div>
+      <div class="tl-item"><div class="tl-date">Completed</div><div class="tl-title">User Accounts &amp; History Dashboard</div><div class="tl-desc">Full session tracking, performance trends, skill progression analytics.</div></div>
+      <div class="tl-item"><div class="tl-date">Completed</div><div class="tl-title">AI Career Path with Resources &amp; Job Links</div><div class="tl-desc">Month-by-month roadmaps with YouTube tutorials, official docs, project ideas, and live job search links.</div></div>
+      <div class="tl-item"><div class="tl-date">In Development</div><div class="tl-title">Daily Practice Mode &amp; Streak Engine</div><div class="tl-desc">One-question-a-day micro-sessions, streak tracking, and leaderboards for consistent improvement.</div></div>
+      <div class="tl-item"><div class="tl-date">Planned</div><div class="tl-title">Peer Mock Interview Network</div><div class="tl-desc">Connect with candidates for live peer interviews, with AI providing real-time coaching to both sides.</div></div>
+      <div class="tl-item"><div class="tl-date">Planned</div><div class="tl-title">Video &amp; Body Language Analysis</div><div class="tl-desc">Eye contact tracking, posture analysis, and facial expression feedback via webcam AI.</div></div>
+    </div>
+    <div class="g3" style="margin-bottom:48px">
+      <div class="card-sm"><span class="sec-pre" style="margin-bottom:8px">Differentiator</span><h3 style="font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:8px">Adaptive Conversation</h3><p style="font-size:.8rem;color:var(--text2);line-height:1.7">Not scripted Q&amp;A. IQ adapts every question based on your previous answer in real time.</p></div>
+      <div class="card-sm"><span class="sec-pre" style="margin-bottom:8px">Differentiator</span><h3 style="font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:8px">Social Impact at Scale</h3><p style="font-size:.8rem;color:var(--text2);line-height:1.7">The NGO model creates viral moments, media coverage, and investor appeal simultaneously.</p></div>
+      <div class="card-sm"><span class="sec-pre" style="margin-bottom:8px">Differentiator</span><h3 style="font-family:'Playfair Display',serif;font-size:.95rem;margin-bottom:8px">Data Flywheel</h3><p style="font-size:.8rem;color:var(--text2);line-height:1.7">Every interview session makes the AI more precise — building a compounding competitive moat.</p></div>
+    </div>
+    <div style="text-align:center;padding:40px;border:1px solid var(--border);border-radius:20px;background:var(--surface)"><span class="sec-pre">Ready?</span><h2 class="sec-h" style="font-size:1.4rem;margin:0 auto 14px;max-width:480px">Begin Your Preparation Today</h2><button class="btn-gold" style="padding:14px 32px;font-size:.9rem" onclick="navTo('pg-register')">Create Free Account</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══ SUPPORT PAGE ══════════════════════════════════════ -->
+<div id="pg-support" class="page" style="overflow-y:auto">
+  <div style="max-width:680px;margin:0 auto;padding:48px 24px">
+    <span class="sec-pre">Help &amp; Support</span>
+    <h1 class="sec-h" style="font-size:clamp(1.6rem,3vw,2.4rem);margin-bottom:12px">Contact Us</h1>
+    <p class="sec-p" style="margin-bottom:36px">We typically respond within 24 hours. Fill the form below and we'll get back to you at your email.</p>
+    <div class="card" style="margin-bottom:24px">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="font-size:.8rem;color:var(--text2);margin-bottom:6px;display:block">Your Name</label>
+          <input id="sup-name" type="text" class="inp" placeholder="Anwin Nova" style="width:100%" value="">
+        </div>
+        <div>
+          <label style="font-size:.8rem;color:var(--text2);margin-bottom:6px;display:block">Email Address</label>
+          <input id="sup-email" type="email" class="inp" placeholder="you@example.com" style="width:100%">
+        </div>
+        <div>
+          <label style="font-size:.8rem;color:var(--text2);margin-bottom:6px;display:block">Subject</label>
+          <input id="sup-subject" type="text" class="inp" placeholder="e.g. Can't log in, billing question…" style="width:100%">
+        </div>
+        <div>
+          <label style="font-size:.8rem;color:var(--text2);margin-bottom:6px;display:block">Message</label>
+          <textarea id="sup-message" class="inp" rows="5" placeholder="Describe your issue or question in detail…" style="width:100%;resize:vertical"></textarea>
+        </div>
+        <button id="btn-support" class="btn-gold" onclick="submitSupport()" style="padding:13px 28px;align-self:flex-start">Send Message</button>
+        <div id="support-success" style="display:none;background:rgba(20,184,166,.12);border:1px solid var(--teal);border-radius:10px;padding:14px 18px;color:var(--teal);font-size:.88rem;margin-top:6px">
+          ✓ <strong>Message sent!</strong> We've received your request and sent a confirmation to your email. We'll reply within 24 hours.
+        </div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:180px">
+        <div style="font-size:.78rem;color:var(--text3);margin-bottom:4px">Response time</div>
+        <div style="font-weight:600;color:var(--teal)">Within 24 hours</div>
+      </div>
+      <div style="flex:1;min-width:180px">
+        <div style="font-size:.78rem;color:var(--text3);margin-bottom:4px">GitHub</div>
+        <a href="https://github.com/anwinnova" target="_blank" rel="noopener" style="color:var(--gold);font-weight:500;font-size:.85rem">github.com/anwinnova</a>
+      </div>
+      <div style="flex:1;min-width:180px">
+        <div style="font-size:.78rem;color:var(--text3);margin-bottom:4px">LinkedIn</div>
+        <a href="https://www.linkedin.com/in/anwinnova-a-ba7b01375/" target="_blank" rel="noopener" style="color:var(--gold);font-weight:500;font-size:.85rem">Anwin Nova</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/frontend/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# Environment — NEVER commit this
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Database — Railway uses ephemeral disk, DB is recreated on start
+# But keep it local for development
+prepsense.db
+
+# Local file storage — all files go to Cloudinary in production
+uploads/
+audio_files/
+recordings/
+*.mp3
+*.webm
+*.wav
+*.ogg
+*.png
+*.jpg
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
