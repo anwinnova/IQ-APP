@@ -1,6 +1,5 @@
 # ─────────────────────────────────────────────────────────────
 # IQ Platform — Dockerfile for Railway
-# Uses Python 3.11 slim — no Nixpacks, no pip ensurepip error
 # ─────────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
@@ -19,7 +18,7 @@ WORKDIR /app
 # Copy requirements first (Docker cache layer)
 COPY requirements.txt .
 
-# Install Python packages — plain pip, no --break-system-packages needed
+# Install Python packages
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -27,10 +26,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Create folders the app needs at runtime
-RUN mkdir -p uploads audio_files recordings interview_videos
+RUN mkdir -p uploads audio_files recordings /data
 
-# Expose port (Railway sets $PORT)
+# Pre-download Whisper model during build so first request is instant
+# Uses /tmp/whisper_models — cached in the Docker layer
+RUN python3 -c "
+from faster_whisper import WhisperModel
+print('Pre-downloading Whisper base model...')
+m = WhisperModel('base', device='cpu', compute_type='int8', download_root='/tmp/whisper_models')
+print('Whisper model ready.')
+" || echo "Whisper pre-download failed — will download on first use"
+
 EXPOSE 8000
 
-# Start command — reads $PORT from Railway environment
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Start with 2 workers for performance — Railway gives enough RAM
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2

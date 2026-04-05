@@ -218,7 +218,7 @@ No markdown, no explanation."""
         "question":        first_q,
         "question_number": 1,
         "total_questions": len(questions),
-        "audio":           f"http://127.0.0.1:8000/audio/{filename}",
+        "audio":           f"/audio/{filename}",
         "skill_gaps":      skill_gaps,
     }
 
@@ -277,7 +277,7 @@ def next_question(session_id: str, audio_path: str, text_answer: str = ""):
                 "question":        follow_up_q,
                 "question_number": session["current"] + 1,
                 "total_questions": len(session["questions"]),
-                "audio":           f"http://127.0.0.1:8000/audio/{filename}",
+                "audio":           f"/audio/{filename}",
                 "is_follow_up":    True,
                 "follow_up_reason":"AI wants to dig deeper into your answer",
             }
@@ -316,7 +316,7 @@ def _ask_next(session: dict) -> dict:
         "question":        nxt,
         "question_number": session["current"] + 1,
         "total_questions": len(session["questions"]),
-        "audio":           f"http://127.0.0.1:8000/audio/{filename}",
+        "audio":           f"/audio/{filename}",
         "is_follow_up":    False,
     }
 
@@ -410,7 +410,7 @@ Return ONLY valid JSON (no markdown, no backticks):
     return {
         "completed":     True,
         "feedback":      feedback,
-        "audio":         f"http://127.0.0.1:8000/audio/{filename}",
+        "audio":         f"/audio/{filename}",
         "session_meta":  session,
         "duration_secs": session.get("duration", 0),
     }
