@@ -8,20 +8,19 @@ BUG FIXES in this version:
   5. get_dashboard: streak sync update runs while conn is still open
   6. Added WAL journal mode for better concurrent access
 """
-import sqlite3, os, hashlib, secrets, json, smtplib, threading
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import sqlite3, os, hashlib, secrets, json, threading, urllib.request, urllib.error
 from datetime import datetime, date
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_PATH     = "prepsense.db"
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
-# FIX 1: was SMTP_APP_PASSWORD but .env had ADMIN_APP_PASSWORD — now both match
-SMTP_PASS   = os.getenv("SMTP_APP_PASSWORD", "")
-SMTP_HOST   = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT   = int(os.getenv("SMTP_PORT", "587"))
+# ✅ FIX: Use Railway Volume for persistent storage
+# On Railway: add a Volume at /data mount point in Railway dashboard
+# Locally: falls back to prepsense.db in project root
+DB_PATH = os.getenv("DB_PATH", "/data/prepsense.db" if os.path.isdir("/data") else "prepsense.db")
+ADMIN_EMAIL  = os.getenv("ADMIN_EMAIL", "")
+RESEND_KEY   = os.getenv("RESEND_API_KEY", "")   # get free key at resend.com
+NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL", ADMIN_EMAIL)
 
 
 def get_conn():
@@ -43,9 +42,14 @@ def init_db():
         password_hash TEXT NOT NULL,
         avatar_color  TEXT DEFAULT '#4f8fff',
         session_token TEXT DEFAULT NULL,
+        last_device   TEXT DEFAULT '',
         created_at    TEXT DEFAULT (datetime('now')),
         last_login    TEXT
     )""")
+    # Add last_device column if it doesn't exist yet (migration for existing DBs)
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN last_device TEXT DEFAULT ''")
+    except: pass
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS interview_sessions (
@@ -131,38 +135,54 @@ def init_db():
 # ─────────────────────────────────────────────────────────────
 # EMAIL
 # ─────────────────────────────────────────────────────────────
-def _send_email_worker(to: str, subject: str, body_html: str):
-    """Internal worker — runs in background thread so it never blocks requests."""
-    if not ADMIN_EMAIL or not SMTP_PASS or not to:
-        print(f"[EMAIL SKIPPED] SMTP not configured. To:{to}")
-        return
+def _send_via_resend(to: str, subject: str, body_html: str) -> bool:
+    """
+    Send email via Resend HTTP API (resend.com).
+    Works on Railway because it uses HTTPS port 443.
+    Railway blocks ALL SMTP ports (25, 465, 587) — SMTP never works on Railway.
+    FREE tier: 100 emails/day. Get key at resend.com.
+    Add to Railway env vars: RESEND_API_KEY and NOTIFY_EMAIL
+    """
+    if not RESEND_KEY:
+        print(f"[EMAIL] No RESEND_API_KEY set. Skipping: {subject}")
+        return False
+    if not to:
+        return False
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"]    = f"IQ Interview <{ADMIN_EMAIL}>"
-        msg["To"]      = to
-        msg.attach(MIMEText(body_html, "html"))
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(ADMIN_EMAIL, SMTP_PASS)
-            server.sendmail(ADMIN_EMAIL, [to], msg.as_string())
-        print(f"[EMAIL SENT] To:{to} | {subject}")
+        payload = json.dumps({
+            "from":    "IQ Platform <onboarding@resend.dev>",
+            "to":      [to],
+            "subject": subject,
+            "html":    body_html,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data    = payload,
+            headers = {"Authorization": f"Bearer {RESEND_KEY}",
+                       "Content-Type": "application/json"},
+            method  = "POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode())
+            print(f"[EMAIL SENT] → {to} | {subject} | id={result.get('id','?')}")
+            return True
     except Exception as e:
-        print(f"[EMAIL ERROR] To:{to} | {e}")
+        print(f"[EMAIL ERROR] → {to} | {e}")
+        return False
 
 def send_email(to: str, subject: str, body_html: str) -> bool:
     """
-    Sends email in a background thread — never blocks API responses.
-    Network errors on Railway (port 587 blocked) are logged but don't crash the app.
+    Non-blocking email: fires in background thread so the HTTP response
+    returns instantly. Never slows down support/feedback endpoints.
     """
-    if not ADMIN_EMAIL or not SMTP_PASS or not to:
-        print(f"[EMAIL SKIPPED] SMTP not configured. To:{to} | {subject}")
+    if not to:
         return False
-    t = threading.Thread(target=_send_email_worker, args=(to, subject, body_html), daemon=True)
-    t.start()
-    return True  # returns immediately, email sends in background
+    threading.Thread(
+        target=_send_via_resend,
+        args=(to, subject, body_html),
+        daemon=True
+    ).start()
+    return True  # always True — sends asynchronously
 
 
 # ─────────────────────────────────────────────────────────────
@@ -202,7 +222,7 @@ def register_user(name: str, email: str, password: str):
     finally:
         conn.close()
 
-def login_user(email: str, password: str):
+def login_user(email: str, password: str, device_info: str = ""):
     """Single-device: rotates session_token every login. Old token/device gets 401."""
     conn = get_conn()
     c = conn.cursor()
@@ -432,6 +452,68 @@ def get_session_detail(session_id: int, user_id: int) -> dict:
     if not row:
         return {}
     return {"id":row["id"],"role":row["role"],"score":row["overall_score"],"verdict":row["verdict"],"hire":row["hire_recommendation"],"feedback":json.loads(row["feedback_json"]) if row["feedback_json"] else {},"date":row["created_at"],"difficulty":row["difficulty"],"duration":row["duration_secs"]}
+
+
+init_db()
+
+
+# ─────────────────────────────────────────────────────────────
+# ADMIN — Export all data (questions, answers, user info)
+# Access via /api/admin/export?key=YOUR_ADMIN_KEY
+# ─────────────────────────────────────────────────────────────
+ADMIN_KEY = os.getenv("ADMIN_KEY", "")  # set this in .env for security
+
+def admin_export_all() -> dict:
+    """Export everything: users, sessions with Q&A, devices."""
+    conn = get_conn()
+    c = conn.cursor()
+
+    users = c.execute("""
+        SELECT id, name, email, avatar_color, last_device, created_at, last_login
+        FROM users ORDER BY created_at DESC
+    """).fetchall()
+
+    sessions = c.execute("""
+        SELECT s.*, u.name as user_name, u.email as user_email, u.last_device
+        FROM interview_sessions s
+        JOIN users u ON s.user_id = u.id
+        ORDER BY s.created_at DESC
+    """).fetchall()
+
+    feedback = c.execute("""
+        SELECT * FROM feedback_submissions ORDER BY created_at DESC
+    """).fetchall()
+
+    support = c.execute("""
+        SELECT * FROM support_tickets ORDER BY created_at DESC
+    """).fetchall()
+
+    conn.close()
+
+    # Parse Q&A from feedback_json for each session
+    sessions_out = []
+    for s in sessions:
+        row = dict(s)
+        try:
+            fb = json.loads(row.get("feedback_json") or "{}")
+            row["question_scores"] = fb.get("question_scores", [])
+            row["strengths"]       = fb.get("strengths", [])
+            row["improvements"]    = fb.get("improvements", [])
+            row["verdict"]         = fb.get("verdict", row.get("verdict", ""))
+        except:
+            row["question_scores"] = []
+        del row["feedback_json"]  # don't double-send
+        sessions_out.append(row)
+
+    return {
+        "exported_at":   datetime.now().isoformat(),
+        "total_users":   len(users),
+        "total_sessions":len(sessions),
+        "users":         [dict(u) for u in users],
+        "sessions":      sessions_out,
+        "feedback":      [dict(f) for f in feedback],
+        "support":       [dict(s) for s in support],
+    }
 
 
 init_db()

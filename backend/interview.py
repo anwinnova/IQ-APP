@@ -247,7 +247,7 @@ def next_question(session_id: str, audio_path: str, text_answer: str = ""):
     if not answer and text_answer:
         answer = text_answer
         print(f"[FALLBACK] Using text_answer: '{answer[:80]}'")
-
+        print("Data has been Fallen Back")
     # ── Last resort: mark as no answer ──
     if not answer:
         answer = "[No answer provided]"

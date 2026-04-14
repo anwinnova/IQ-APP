@@ -731,9 +731,29 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
   text-decoration:none; transition:all .2s;
 }
 .founder-link:hover{ border-color:var(--gold); color:var(--gold); }
+
+/* ── Audio hint for autoplay-blocked browsers ── */
+#audio-hint{
+  display:none;position:fixed;bottom:80px;left:50%;
+  transform:translateX(-50%);z-index:9999;
+  background:var(--gold);color:#000;
+  padding:12px 28px;border-radius:30px;
+  font-family:'Outfit',sans-serif;font-weight:700;font-size:.88rem;
+  cursor:pointer;gap:8px;align-items:center;
+  box-shadow:0 4px 24px rgba(201,168,76,.45);
+  animation:hintPulse 1.5s ease-in-out infinite;
+}
+@keyframes hintPulse{
+  0%,100%{transform:translateX(-50%) scale(1)}
+  50%{transform:translateX(-50%) scale(1.04)}
+}
+
 </style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎯%3C/text%3E%3C/svg%3E"/>
 </head>
 <body>
+<div id="audio-hint">🔊 Tap to hear the question</div>
 
 <!-- ══ FIXED NAV ══════════════════════════════════════════ -->
 <nav class="nav">

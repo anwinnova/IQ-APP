@@ -460,16 +460,9 @@ async function startInterview() {
 /* ── SPEECH RECOGNITION ─────────────────────────────── */
 function initSpeech() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    console.warn("[IQ] Web Speech API not available. Use Chrome for live transcript.");
-    return;
-  }
+  if (!SR) return;
   recognition = new SR();
-  recognition.continuous     = true;
-  recognition.interimResults = true;
-  recognition.lang           = "en-IN";  // ✅ Better for Indian English accent
-  recognition.maxAlternatives = 1;
-
+  recognition.continuous = true; recognition.interimResults = true; recognition.lang = "en-US";
   recognition.onresult = (event) => {
     let interim = "";
     for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -477,25 +470,12 @@ function initSpeech() {
         captFinal += event.results[i][0].transcript + " ";
         const ta = document.getElementById("ans-ta");
         if (ta) ta.value = captFinal.trim();
-      } else {
-        interim += event.results[i][0].transcript;
-      }
+      } else { interim += event.results[i][0].transcript; }
     }
     renderCap(captFinal, interim);
   };
-
-  recognition.onerror = (e) => {
-    if (e.error === "not-allowed") {
-      toast("Microphone permission denied. Allow mic in browser settings.", "err");
-    } else if (e.error !== "no-speech" && e.error !== "aborted") {
-      console.warn("[Speech]", e.error);
-    }
-  };
-
-  recognition.onend = () => {
-    // Auto-restart while still recording
-    if (isRec) { try { recognition.start(); } catch(e) {} }
-  };
+  recognition.onerror = e => { if (e.error!=="no-speech"&&e.error!=="aborted") console.warn(e.error); };
+  recognition.onend   = () => { if (isRec) { try { recognition.start(); } catch(e){} } };
 }
 
 function renderCap(final, interim) {
@@ -572,11 +552,8 @@ async function submitAnswer() {
     const blob = chunks.length > 0 ? new Blob(chunks, {type:mime}) : new Blob([], {type:"audio/webm"});
 
     const fd = new FormData();
-    fd.append("session_id",  sessionId);
-    fd.append("file",        blob, `ans.${ext}`);
-    // ✅ FIX: send typed/spoken transcript as fallback for Whisper
-    const manualText = document.getElementById("ans-ta") ? document.getElementById("ans-ta").value.trim() : "";
-    fd.append("text_answer", manualText || captFinal.trim());
+    fd.append("session_id", sessionId);
+    fd.append("file", blob, `ans.${ext}`);
 
     const res  = await fetch("/next-question/", { method: "POST", body: fd });
     const data = await res.json();
@@ -689,26 +666,28 @@ function toggleCam() {
 }
 function playAudio(url) {
   if (!url) return;
-  if (curAudio) { curAudio.pause(); curAudio.src = ""; }
-  // ✅ FIX: ensure relative URL (strips any hardcoded localhost)
-  if (url.includes("127.0.0.1") || url.includes("localhost")) {
-    url = "/" + url.split("/").slice(3).join("/");
-  }
+  // Convert relative URL → absolute so Railway domain works
+  // interview.py returns /audio/filename.mp3 — this makes it work on any domain
+  if (url.startsWith("/")) url = window.location.origin + url;
+
+  if (curAudio) { try { curAudio.pause(); curAudio.src = ""; } catch(e) {} }
   curAudio = new Audio(url);
   curAudio.preload = "auto";
+
   const orb = document.getElementById("ai-orb");
-  if (orb) {
-    orb.classList.add("speaking");
-    curAudio.onended = () => orb.classList.remove("speaking");
-  }
-  curAudio.play().catch(e => {
-    console.warn("[Audio] Autoplay blocked or error:", e.message, url);
-    // Show user a hint if browser blocked autoplay
-    setIvStatus("▶ Click anywhere to hear the question");
-    document.addEventListener("click", function resumeAudio() {
-      curAudio && curAudio.play().catch(()=>{});
-      document.removeEventListener("click", resumeAudio);
-    }, { once: true });
+  if (orb) { orb.classList.add("speaking"); curAudio.onended = () => orb.classList.remove("speaking"); }
+
+  curAudio.play().catch(err => {
+    console.warn("[Audio] Autoplay blocked:", err.message);
+    // Show tap-to-play hint when browser blocks autoplay (common on mobile/HTTPS)
+    const hint = document.getElementById("audio-hint");
+    if (hint) {
+      hint.style.display = "flex";
+      hint.onclick = () => {
+        curAudio.play().catch(() => {});
+        hint.style.display = "none";
+      };
+    }
   });
 }
 function endInterview() {
