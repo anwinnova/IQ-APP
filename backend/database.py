@@ -18,9 +18,13 @@ load_dotenv()
 # On Railway: add a Volume at /data mount point in Railway dashboard
 # Locally: falls back to prepsense.db in project root
 DB_PATH = os.getenv("DB_PATH", "/data/prepsense.db" if os.path.isdir("/data") else "prepsense.db")
-ADMIN_EMAIL  = os.getenv("ADMIN_EMAIL", "")
-RESEND_KEY   = os.getenv("RESEND_API_KEY", "")   # get free key at resend.com
-NOTIFY_EMAIL = os.getenv("NOTIFY_EMAIL", ADMIN_EMAIL)
+ADMIN_EMAIL   = os.getenv("ADMIN_EMAIL", "")
+RESEND_KEY    = os.getenv("RESEND_API_KEY", "")      # preferred: resend.com (works on Railway)
+NOTIFY_EMAIL  = os.getenv("NOTIFY_EMAIL", ADMIN_EMAIL)
+# Gmail SMTP fallback (works locally, blocked on Railway free tier)
+_SMTP_PASS    = (os.getenv("SMTP_APP_PASSWORD", "") or "").split("#")[0].strip()
+_SMTP_HOST    = os.getenv("SMTP_HOST", "smtp.gmail.com")
+_SMTP_PORT    = int(os.getenv("SMTP_PORT", "587"))
 
 
 def get_conn():
@@ -136,17 +140,8 @@ def init_db():
 # EMAIL
 # ─────────────────────────────────────────────────────────────
 def _send_via_resend(to: str, subject: str, body_html: str) -> bool:
-    """
-    Send email via Resend HTTP API (resend.com).
-    Works on Railway because it uses HTTPS port 443.
-    Railway blocks ALL SMTP ports (25, 465, 587) — SMTP never works on Railway.
-    FREE tier: 100 emails/day. Get key at resend.com.
-    Add to Railway env vars: RESEND_API_KEY and NOTIFY_EMAIL
-    """
-    if not RESEND_KEY:
-        print(f"[EMAIL] No RESEND_API_KEY set. Skipping: {subject}")
-        return False
-    if not to:
+    """Send via Resend HTTP API — works on Railway (HTTPS port 443, not blocked)."""
+    if not RESEND_KEY or not to:
         return False
     try:
         payload = json.dumps({
@@ -164,25 +159,50 @@ def _send_via_resend(to: str, subject: str, body_html: str) -> bool:
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
             result = json.loads(resp.read().decode())
-            print(f"[EMAIL SENT] → {to} | {subject} | id={result.get('id','?')}")
+            print(f"[EMAIL via Resend] → {to} | {subject}")
             return True
     except Exception as e:
-        print(f"[EMAIL ERROR] → {to} | {e}")
+        print(f"[EMAIL Resend ERROR] → {to} | {e}")
         return False
+
+def _send_via_smtp(to: str, subject: str, body_html: str) -> bool:
+    """Gmail SMTP fallback — works locally, blocked on Railway free tier."""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    if not ADMIN_EMAIL or not _SMTP_PASS or not to:
+        return False
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"]    = f"IQ Interview <{ADMIN_EMAIL}>"
+        msg["To"]      = to
+        msg.attach(MIMEText(body_html, "html"))
+        with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=15) as server:
+            server.ehlo(); server.starttls(); server.ehlo()
+            server.login(ADMIN_EMAIL, _SMTP_PASS)
+            server.sendmail(ADMIN_EMAIL, [to], msg.as_string())
+        print(f"[EMAIL via Gmail] → {to} | {subject}")
+        return True
+    except Exception as e:
+        print(f"[EMAIL Gmail ERROR] → {to} | {e}")
+        return False
+
+def _email_worker(to: str, subject: str, body_html: str):
+    """Background worker: try Resend first, then Gmail SMTP."""
+    if not _send_via_resend(to, subject, body_html):
+        _send_via_smtp(to, subject, body_html)
 
 def send_email(to: str, subject: str, body_html: str) -> bool:
     """
-    Non-blocking email: fires in background thread so the HTTP response
-    returns instantly. Never slows down support/feedback endpoints.
+    Non-blocking email in background thread.
+    Tries Resend API first (works on Railway), falls back to Gmail SMTP (works locally).
+    Add RESEND_API_KEY to Railway Variables for emails to work on Railway.
     """
     if not to:
         return False
-    threading.Thread(
-        target=_send_via_resend,
-        args=(to, subject, body_html),
-        daemon=True
-    ).start()
-    return True  # always True — sends asynchronously
+    threading.Thread(target=_email_worker, args=(to, subject, body_html), daemon=True).start()
+    return True
 
 
 # ─────────────────────────────────────────────────────────────

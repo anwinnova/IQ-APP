@@ -20,10 +20,15 @@ load_dotenv()
 #   LLM_PROVIDER=ollama       (fully offline, needs Ollama running locally)
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
 
-GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
-OPENAI_KEY    = os.getenv("OPENAI_API_KEY", "")
-ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-GROQ_KEY      = os.getenv("GROQ_API_KEY", "")
+# Strip inline comments (e.g. KEY=value  #comment) and whitespace from all keys
+def _clean_key(val: str) -> str:
+    """Remove trailing comments like '  #GEMini' that break API calls."""
+    return val.split("#")[0].strip() if val else ""
+
+GEMINI_KEY    = _clean_key(os.getenv("GEMINI_API_KEY", ""))
+OPENAI_KEY    = _clean_key(os.getenv("OPENAI_API_KEY", ""))
+ANTHROPIC_KEY = _clean_key(os.getenv("ANTHROPIC_API_KEY", ""))
+GROQ_KEY      = _clean_key(os.getenv("GROQ_API_KEY", ""))
 OLLAMA_MODEL  = os.getenv("OLLAMA_MODEL", "llama3")
 OLLAMA_URL    = os.getenv("OLLAMA_URL", "http://localhost:11434")
 
@@ -52,9 +57,21 @@ def call_gemini(prompt: str) -> str:
     return call_llm(prompt)
 
 def _call_gemini(prompt: str) -> str:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
-    res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=60)
-    return res.json()["candidates"][0]["content"]["parts"][0]["text"]
+    if not GEMINI_KEY:
+        raise ValueError("GEMINI_API_KEY is not set in environment variables")
+    url  = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
+    res  = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=60)
+    data = res.json()
+    # Gemini returns error dict when key is invalid or quota exceeded
+    if "candidates" not in data:
+        error_msg = data.get("error", {}).get("message", str(data))
+        print(f"[Gemini ERROR] {res.status_code}: {error_msg}")
+        # Auto-fallback to Groq if Gemini fails and GROQ_KEY is available
+        if GROQ_KEY:
+            print("[Gemini] Falling back to Groq...")
+            return _call_groq(prompt)
+        raise ValueError(f"Gemini API error: {error_msg}")
+    return data["candidates"][0]["content"]["parts"][0]["text"]
 
 def _call_openai(prompt: str) -> str:
     import openai
@@ -77,14 +94,19 @@ def _call_anthropic(prompt: str) -> str:
     return msg.content[0].text
 
 def _call_groq(prompt: str) -> str:
+    if not GROQ_KEY:
+        raise ValueError("GROQ_API_KEY is not set")
     url  = "https://api.groq.com/openai/v1/chat/completions"
     res  = requests.post(
         url,
         headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
-        json={"model": "llama3-70b-8192", "messages": [{"role":"user","content":prompt}]},
+        json={"model": "llama-3.3-70b-versatile", "messages": [{"role":"user","content":prompt}]},
         timeout=60,
     )
-    return res.json()["choices"][0]["message"]["content"]
+    data = res.json()
+    if "choices" not in data:
+        raise ValueError(f"Groq error: {data.get('error', data)}")
+    return data["choices"][0]["message"]["content"]
 
 def _call_ollama(prompt: str) -> str:
     res = requests.post(

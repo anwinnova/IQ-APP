@@ -462,7 +462,7 @@ function initSpeech() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return;
   recognition = new SR();
-  recognition.continuous = true; recognition.interimResults = true; recognition.lang = "en-US";
+  recognition.continuous = true; recognition.interimResults = true; recognition.lang = "en-IN"  // Indian English accent;
   recognition.onresult = (event) => {
     let interim = "";
     for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -474,7 +474,15 @@ function initSpeech() {
     }
     renderCap(captFinal, interim);
   };
-  recognition.onerror = e => { if (e.error!=="no-speech"&&e.error!=="aborted") console.warn(e.error); };
+  recognition.onerror = (e) => {
+    if (e.error === "not-allowed") {
+      toast("Microphone permission denied — check browser settings", "err");
+    } else if (e.error === "network") {
+      console.warn("[Speech] Network error — transcript may be unavailable");
+    } else if (e.error !== "no-speech" && e.error !== "aborted") {
+      console.warn("[Speech error]", e.error);
+    }
+  };
   recognition.onend   = () => { if (isRec) { try { recognition.start(); } catch(e){} } };
 }
 
@@ -552,8 +560,11 @@ async function submitAnswer() {
     const blob = chunks.length > 0 ? new Blob(chunks, {type:mime}) : new Blob([], {type:"audio/webm"});
 
     const fd = new FormData();
-    fd.append("session_id", sessionId);
-    fd.append("file", blob, `ans.${ext}`);
+    fd.append("session_id",  sessionId);
+    fd.append("file",        blob, `ans.${ext}`);
+    // Send typed/spoken transcript as fallback if Whisper gets nothing
+    const manualText = (document.getElementById("ans-ta")||{}).value || captFinal || "";
+    fd.append("text_answer", manualText.trim());
 
     const res  = await fetch("/next-question/", { method: "POST", body: fd });
     const data = await res.json();
@@ -666,28 +677,28 @@ function toggleCam() {
 }
 function playAudio(url) {
   if (!url) return;
-  // Convert relative URL → absolute so Railway domain works
-  // interview.py returns /audio/filename.mp3 — this makes it work on any domain
+  // Strip hardcoded localhost — convert to relative URL so Railway domain works
+  if (url.includes("127.0.0.1") || url.includes("localhost")) {
+    url = "/" + url.split("/").slice(3).join("/");
+  }
+  // Make relative URLs absolute with current domain
   if (url.startsWith("/")) url = window.location.origin + url;
 
-  if (curAudio) { try { curAudio.pause(); curAudio.src = ""; } catch(e) {} }
+  if (curAudio) { try { curAudio.pause(); curAudio.src = ""; } catch(e){} }
   curAudio = new Audio(url);
   curAudio.preload = "auto";
-
   const orb = document.getElementById("ai-orb");
-  if (orb) { orb.classList.add("speaking"); curAudio.onended = () => orb.classList.remove("speaking"); }
-
-  curAudio.play().catch(err => {
-    console.warn("[Audio] Autoplay blocked:", err.message);
-    // Show tap-to-play hint when browser blocks autoplay (common on mobile/HTTPS)
-    const hint = document.getElementById("audio-hint");
-    if (hint) {
-      hint.style.display = "flex";
-      hint.onclick = () => {
-        curAudio.play().catch(() => {});
-        hint.style.display = "none";
-      };
-    }
+  if (orb) {
+    orb.classList.add("speaking");
+    curAudio.onended = () => orb.classList.remove("speaking");
+  }
+  curAudio.play().catch(e => {
+    console.warn("[Audio] Autoplay blocked:", e.message, url);
+    setIvStatus("▶ Click anywhere to hear the question");
+    document.addEventListener("click", function resumeAudio() {
+      curAudio && curAudio.play().catch(() => {});
+      document.removeEventListener("click", resumeAudio);
+    }, { once: true });
   });
 }
 function endInterview() {
