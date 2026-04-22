@@ -560,12 +560,18 @@ async function submitAnswer() {
     const blob = chunks.length > 0 ? new Blob(chunks, {type:mime}) : new Blob([], {type:"audio/webm"});
 
     const fd = new FormData();
+/*<<<<<<< HEAD */
     fd.append("session_id",  sessionId);
     fd.append("file",        blob, `ans.${ext}`);
     // Send typed/spoken transcript as fallback if Whisper gets nothing
     const manualText = (document.getElementById("ans-ta")||{}).value || captFinal || "";
     fd.append("text_answer", manualText.trim());
-
+/*=======*/
+    fd.append("session_id",   sessionId);
+    fd.append("file",         blob, `ans.${ext}`);
+    fd.append("text_answer",  captFinal.trim()); // ← always send transcript as fallback
+/*>>>>>>> 6fc2046 (Added deployment config and environment setup)
+            */
     const res  = await fetch("/next-question/", { method: "POST", body: fd });
     const data = await res.json();
 

@@ -24,11 +24,9 @@ from backend.database import (
     save_recording, get_recordings,
     admin_export_all, ADMIN_KEY,
 )
-import os, shutil, uuid, threading
+import os, shutil, uuid
 
-from fastapi.middleware.gzip import GZipMiddleware
-app = FastAPI(title="IQ — Elite AI Interview Intelligence")
-app.add_middleware(GZipMiddleware, minimum_size=1000)  # compress responses > 1KB
+app = FastAPI(title="PrepSense API")
 
 # ─────────────────────────────────────────────────────────────
 # CLOUDINARY — used only on Railway (when env var is set)
@@ -225,14 +223,10 @@ async def next_q(
 
     if uid:
         if IS_RAILWAY and cloud_upload:
-            # 🌐 RAILWAY: upload to Cloudinary (audio answers are small, usually < 5MB)
-            audio_mb = len(content) / (1024 * 1024)
-            if audio_mb < 50:  # skip only if absurdly large
-                result   = cloud_upload(local_path, "audio", session_id=session_id, user_id=uid)
-                file_url = result["url"]
-            else:
-                file_url = f"/recordings/{filename}"
-                print(f"[Cloudinary] Audio too large ({audio_mb:.1f}MB), using local path")
+            # 🌐 RAILWAY: upload to Cloudinary → permanent URL saved in DB
+            result   = cloud_upload(local_path, "audio", session_id=session_id, user_id=uid)
+            file_url = result["url"]
+            print(f"[Cloudinary] audio → {file_url}")
         else:
             # 💻 LOCAL: just save the local path — file stays on your laptop
             file_url = f"/recordings/{filename}"
@@ -289,15 +283,10 @@ async def api_save_recording(
         f.write(content)
 
     if IS_RAILWAY and cloud_upload:
-        # 🌐 RAILWAY: upload to Cloudinary — skip if file > 80MB (Cloudinary free limit)
-        file_size_mb = len(content) / (1024 * 1024)
-        if file_size_mb > 80:
-            print(f"[Cloudinary] Skipping {file_type} — too large ({file_size_mb:.1f}MB > 80MB limit)")
-            file_url = f"/recordings/{filename}"
-        else:
-            result   = cloud_upload(local_path, file_type, session_id=session_id, user_id=user_id)
-            file_url = result["url"]
-            print(f"[Cloudinary] {file_type} ({file_size_mb:.1f}MB) → {file_url}")
+        # 🌐 RAILWAY: upload to Cloudinary → permanent URL
+        result   = cloud_upload(local_path, file_type, session_id=session_id, user_id=user_id)
+        file_url = result["url"]
+        print(f"[Cloudinary] {file_type} → {file_url}")
     else:
         # 💻 LOCAL: file stays in recordings/ on your laptop
         file_url = f"/recordings/{filename}"
@@ -370,23 +359,6 @@ def api_admin_export(key: str = ""):
 @app.get("/health")
 def health():
     return {"status": "ok", "db": __import__("backend.database", fromlist=["DB_PATH"]).DB_PATH}
-
-
-# ── Stop favicon/apple-icon 404 spam in logs ─────────────────
-from fastapi.responses import Response as _Resp
-_TRANSPARENT_PNG = (
-    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
-    b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
-    b"\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01"
-    b"\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
-)
-@app.get("/favicon.ico",                       include_in_schema=False)
-@app.get("/apple-touch-icon.png",              include_in_schema=False)
-@app.get("/apple-touch-icon-precomposed.png",  include_in_schema=False)
-@app.get("/apple-touch-icon-120x120.png",      include_in_schema=False)
-@app.get("/apple-touch-icon-120x120-precomposed.png", include_in_schema=False)
-def _favicon():
-    return _Resp(content=_TRANSPARENT_PNG, media_type="image/png")
 
 
 # ═══════════════════════════════════════════════

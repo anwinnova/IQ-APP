@@ -1,9 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# IQ Platform — Dockerfile for Railway
+# IQ Platform — Dockerfile
+# Works on: Render (free), Railway, Fly.io, any Docker host
 # ─────────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
-# System packages needed by faster-whisper + PyMuPDF
+# System packages needed by faster-whisper + PyMuPDF + gTTS
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsndfile1 \
@@ -25,19 +26,21 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy all project files
 COPY . .
 
-# Create folders the app needs at runtime
-RUN mkdir -p uploads audio_files recordings /data
+# Create runtime folders
+RUN mkdir -p uploads audio_files recordings interview_videos
 
-# Pre-download Whisper model during build so first request is instant
-# Uses /tmp/whisper_models — cached in the Docker layer
-RUN python3 -c "
-from faster_whisper import WhisperModel
-print('Pre-downloading Whisper base model...')
-m = WhisperModel('base', device='cpu', compute_type='int8', download_root='/tmp/whisper_models')
-print('Whisper model ready.')
-" || echo "Whisper pre-download failed — will download on first use"
+# Startup script — uses /app/data persistent disk on Render if available
+RUN printf '#!/bin/sh\n\
+if [ -d "/app/data" ]; then\n\
+  mkdir -p /app/data/audio_files /app/data/recordings /app/data/uploads\n\
+  [ -d /app/audio_files ] && [ ! -L /app/audio_files ] && rm -rf /app/audio_files && ln -s /app/data/audio_files /app/audio_files\n\
+  [ -d /app/recordings ]  && [ ! -L /app/recordings ]  && rm -rf /app/recordings  && ln -s /app/data/recordings  /app/recordings\n\
+  [ -d /app/uploads ]     && [ ! -L /app/uploads ]     && rm -rf /app/uploads     && ln -s /app/data/uploads     /app/uploads\n\
+  export DB_PATH="/app/data/prepsense.db"\n\
+fi\n\
+exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}\n' > /app/start.sh \
+  && chmod +x /app/start.sh
 
 EXPOSE 8000
 
-# Start with 2 workers for performance — Railway gives enough RAM
-CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2
+CMD ["/app/start.sh"]
