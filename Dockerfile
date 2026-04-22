@@ -36,7 +36,7 @@ if [ -d "/app/data" ]; then\n\
   [ -d /app/audio_files ] && [ ! -L /app/audio_files ] && rm -rf /app/audio_files && ln -s /app/data/audio_files /app/audio_files\n\
   [ -d /app/recordings ]  && [ ! -L /app/recordings ]  && rm -rf /app/recordings  && ln -s /app/data/recordings  /app/recordings\n\
   [ -d /app/uploads ]     && [ ! -L /app/uploads ]     && rm -rf /app/uploads     && ln -s /app/data/uploads     /app/uploads\n\
-  export DB_PATH="/app/data/prepsense.db"\n\
+  export DB_PATH="${DB_PATH:-prepsense.db}"
 fi\n\
 exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}\n' > /app/start.sh \
   && chmod +x /app/start.sh
