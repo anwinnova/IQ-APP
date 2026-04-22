@@ -150,7 +150,7 @@ def init_db():
 # ─────────────────────────────────────────────────────────────
 # EMAIL HELPER
 # ─────────────────────────────────────────────────────────────
-<<<<<<< HEAD
+#<<<<<<< HEAD
 def _send_via_resend(to: str, subject: str, body_html: str) -> bool:
     """Send via Resend HTTP API — works on Railway (HTTPS port 443, not blocked)."""
     if not RESEND_KEY or not to:
@@ -216,7 +216,7 @@ def send_email(to: str, subject: str, body_html: str) -> bool:
     threading.Thread(target=_email_worker, args=(to, subject, body_html), daemon=True).start()
     return True
 
-=======
+#=======
 def send_email(to: str, subject: str, body_html: str):
     """Send email via SMTP. Silently prints if not configured."""
     if not ADMIN_EMAIL or not SMTP_PASS or not to:
@@ -240,7 +240,7 @@ def send_email(to: str, subject: str, body_html: str):
         print(f"[EMAIL ERROR] To:{to} | {e}")
         return False
 
->>>>>>> 6fc2046 (Added deployment config and environment setup)
+#>>>>>>> 6fc2046 (Added deployment config and environment setup)
 
 # ─────────────────────────────────────────────────────────────
 # AUTH
