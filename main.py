@@ -23,8 +23,10 @@ from backend.database import (
     save_feedback, submit_support,
     save_recording, get_recordings,
     admin_export_all, ADMIN_KEY,
+    ban_user, unban_user, delete_user, close_support_ticket,
+    get_login_history, get_full_session_qa,
 )
-import os, shutil, uuid
+import os, shutil, uuid, requests as http_req
 
 app = FastAPI(title="PrepSense API")
 
@@ -77,8 +79,30 @@ def serve_ui():
 # ═══════════════════════════════════════════════
 # AUTH
 # ═══════════════════════════════════════════════
+def get_client_ip(request: Request) -> str:
+    """Get real IP even behind ngrok/proxy."""
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+def get_location(ip: str) -> str:
+    """Free IP geolocation — returns 'City, Country' or empty string."""
+    if not ip or ip in ("127.0.0.1", "::1", "localhost"):
+        return "Local"
+    try:
+        r = http_req.get(f"http://ip-api.com/json/{ip}?fields=city,country", timeout=3)
+        d = r.json()
+        if d.get("city") and d.get("country"):
+            return f"{d['city']}, {d['country']}"
+    except Exception:
+        pass
+    return ""
+
+
 @app.post("/api/register")
 async def api_register(
+    request:  Request,
     name:     str = Form(...),
     email:    str = Form(...),
     password: str = Form(...),
@@ -94,9 +118,9 @@ async def api_login(
     email:    str = Form(...),
     password: str = Form(...),
 ):
-    # ✅ FIX: capture device/browser info for admin view
+    ip          = get_client_ip(request)
     device_info = request.headers.get("user-agent", "unknown")[:200]
-    result = login_user(email, password, device_info=device_info)
+    result      = login_user(email, password, device_info=device_info, ip_address=ip)
     if not result["ok"]:
         return JSONResponse(status_code=401, content=result)
     return result
@@ -342,15 +366,111 @@ async def api_support(
 
 
 # ═══════════════════════════════════════════════
-# ADMIN — view all users, sessions, Q&A, devices
-# ✅ Protected by ADMIN_KEY set in .env
-# Usage: GET /api/admin/export?key=your_admin_key
+# ADMIN — full dashboard API
+# All routes protected by ADMIN_KEY in .env
+# Usage: pass ?key=YOUR_ADMIN_KEY on every request
 # ═══════════════════════════════════════════════
+def check_admin(key: str):
+    if not ADMIN_KEY or key != ADMIN_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden — wrong admin key")
+
 @app.get("/api/admin/export")
 def api_admin_export(key: str = ""):
-    if not ADMIN_KEY or key != ADMIN_KEY:
-        return JSONResponse(status_code=403, content={"error": "Forbidden — wrong admin key"})
+    check_admin(key)
     return admin_export_all()
+
+@app.get("/api/admin/user/{user_id}/logins")
+def api_user_logins(user_id: int, key: str = ""):
+    check_admin(key)
+    return {"logins": get_login_history(user_id)}
+
+@app.get("/api/admin/session/{session_id}/qa")
+def api_session_qa(session_id: int, user_id: int, key: str = ""):
+    check_admin(key)
+    return get_full_session_qa(session_id, user_id)
+
+@app.post("/api/admin/ban/{user_id}")
+async def api_ban_user(user_id: int, request: Request, key: str = Form(""), reason: str = Form("Violation of terms")):
+    check_admin(key)
+    ip = get_client_ip(request)
+    return ban_user(user_id, reason, ip=ip)
+
+@app.post("/api/admin/unban/{user_id}")
+async def api_unban_user(user_id: int, request: Request, key: str = Form("")):
+    check_admin(key)
+    ip = get_client_ip(request)
+    return unban_user(user_id, ip=ip)
+
+@app.delete("/api/admin/user/{user_id}")
+def api_delete_user(user_id: int, key: str = "", request: Request = None):
+    check_admin(key)
+    ip = get_client_ip(request) if request else ""
+    return delete_user(user_id, ip=ip)
+
+@app.post("/api/admin/ticket/{ticket_id}/close")
+def api_close_ticket(ticket_id: int, key: str = Form("")):
+    check_admin(key)
+    return close_support_ticket(ticket_id)
+
+@app.get("/api/admin/user-detail/{user_id}")
+def api_user_detail(user_id: int, key: str = ""):
+    """Return full account detail for one user including all sessions and login history."""
+    check_admin(key)
+    from backend.database import get_conn
+    conn = get_conn()
+    c    = conn.cursor()
+    user = c.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+    if not user:
+        conn.close()
+        raise HTTPException(status_code=404, detail="User not found")
+    sessions = c.execute(
+        "SELECT * FROM interview_sessions WHERE user_id=? ORDER BY created_at DESC",
+        (user_id,)
+    ).fetchall()
+    logins = c.execute(
+        "SELECT * FROM login_history WHERE user_id=? ORDER BY created_at DESC LIMIT 50",
+        (user_id,)
+    ).fetchall()
+    conn.close()
+    import json as _json
+    ud = dict(user)
+    ud.pop("password_hash", None)   # never send hash to frontend
+    ud.pop("session_token", None)   # never send token to frontend
+    return {
+        "user":     ud,
+        "sessions": [dict(s) for s in sessions],
+        "logins":   [dict(l) for l in logins],
+    }
+
+@app.get("/api/admin/db-table/{table}")
+def api_db_table(table: str, key: str = "", limit: int = 200):
+    """Raw table viewer — returns any table's rows for admin inspection."""
+    check_admin(key)
+    ALLOWED = {"users","interview_sessions","daily_streak","skill_scores",
+               "recordings","feedback_submissions","support_tickets",
+               "login_history","admin_log"}
+    if table not in ALLOWED:
+        raise HTTPException(status_code=400, detail=f"Table '{table}' not allowed")
+    from backend.database import get_conn
+    conn = get_conn()
+    rows = conn.execute(
+        f"SELECT * FROM {table} ORDER BY rowid DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        rd = dict(r)
+        rd.pop("password_hash", None)
+        rd.pop("session_token", None)
+        result.append(rd)
+    return {"table": table, "count": len(result), "rows": result}
+
+@app.get("/admin")
+def admin_dashboard():
+    for path in ["frontend/admin.html", "admin.html", "static/admin.html"]:
+        if os.path.exists(path):
+            return FileResponse(path)
+    return JSONResponse(status_code=404, content={"error": "admin.html not found — copy it to frontend/"})
 
 
 # ═══════════════════════════════════════════════

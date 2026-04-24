@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IQ Admin Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg:      #0a0a0f;
+    --bg2:     #111118;
+    --bg3:     #1a1a24;
+    --border:  #2a2a3a;
+    --gold:    #f0c040;
+    --teal:    #00e5c0;
+    --red:     #ff4560;
+    --blue:    #4a9eff;
+    --purple:  #a78bfa;
+    --text1:   #f0f0f8;
+    --text2:   #9090b0;
+    --text3:   #505070;
+    --green:   #22c55e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text1); font-family: 'Syne', sans-serif; min-height: 100vh; }
+  code, .mono { font-family: 'JetBrains Mono', monospace; font-size: .8rem; }
+
+  /* ── LAYOUT ── */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 50% 30%, #1a1030 0%, #0a0a0f 70%);
+  }
+  .login-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 48px; width: 100%; max-width: 420px;
+    box-shadow: 0 40px 80px rgba(0,0,0,.6);
+  }
+  .login-card h1 { font-size: 1.8rem; font-weight: 800; color: var(--gold); margin-bottom: 8px; }
+  .login-card p  { color: var(--text2); font-size: .85rem; margin-bottom: 32px; }
+
+  #app { display: none; }
+  #app.show { display: flex; }
+
+  .sidebar {
+    width: 220px; min-height: 100vh; background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 24px 0; flex-shrink: 0;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .sidebar-logo {
+    padding: 0 20px 24px; font-size: 1.4rem; font-weight: 800;
+    color: var(--gold); border-bottom: 1px solid var(--border); margin-bottom: 16px;
+  }
+  .sidebar-logo span { color: var(--text2); font-size: .7rem; display: block; font-weight: 400; margin-top: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 20px; cursor: pointer; font-size: .88rem;
+    color: var(--text2); transition: all .2s; border-left: 3px solid transparent;
+  }
+  .nav-item:hover { color: var(--text1); background: var(--bg3); }
+  .nav-item.active { color: var(--gold); border-left-color: var(--gold); background: rgba(240,192,64,.05); }
+  .nav-item .ico { width: 18px; text-align: center; }
+
+  .main { flex: 1; padding: 32px; overflow-y: auto; max-height: 100vh; }
+  .page-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+  .page-sub   { color: var(--text2); font-size: .84rem; margin-bottom: 28px; }
+
+  /* ── STAT CARDS ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+  .stat-label { font-size: .72rem; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .stat-val   { font-size: 2rem; font-weight: 800; }
+  .stat-val.gold   { color: var(--gold); }
+  .stat-val.teal   { color: var(--teal); }
+  .stat-val.red    { color: var(--red);  }
+  .stat-val.blue   { color: var(--blue); }
+
+  /* ── TABLES ── */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden; margin-bottom: 24px;
+  }
+  .card-hd {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    font-weight: 700; font-size: .92rem; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px;
+  }
+  .card-hd input {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; color: var(--text1);
+    font-size: .8rem; font-family: inherit; width: 220px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th {
+    text-align: left; padding: 10px 16px; color: var(--text2);
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border); background: var(--bg3);
+  }
+  td { padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* ── PILLS / BADGES ── */
+  .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: .7rem; font-weight: 600; white-space: nowrap;
+  }
+  .pill-green  { background: rgba(34,197,94,.15);  color: var(--green); }
+  .pill-red    { background: rgba(255,69,96,.15);   color: var(--red);  }
+  .pill-gold   { background: rgba(240,192,64,.15);  color: var(--gold); }
+  .pill-blue   { background: rgba(74,158,255,.15);  color: var(--blue); }
+  .pill-purple { background: rgba(167,139,250,.15); color: var(--purple); }
+  .pill-grey   { background: rgba(144,144,176,.12); color: var(--text2); }
+
+  /* ── BUTTONS ── */
+  .btn { padding: 7px 14px; border-radius: 8px; border: none; cursor: pointer; font-size: .78rem; font-family: inherit; font-weight: 600; transition: all .15s; }
+  .btn-red    { background: rgba(255,69,96,.15); color: var(--red); border: 1px solid rgba(255,69,96,.3); }
+  .btn-green  { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+  .btn-blue   { background: rgba(74,158,255,.15); color: var(--blue); border: 1px solid rgba(74,158,255,.3); }
+  .btn-gold   { background: var(--gold); color: #000; border: none; }
+  .btn:hover  { filter: brightness(1.2); }
+  .btn-sm     { padding: 4px 10px; font-size: .72rem; }
+
+  /* ── INPUTS ── */
+  .inp {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text1);
+    font-family: inherit; font-size: .88rem; outline: none;
+    transition: border-color .2s;
+  }
+  .inp:focus { border-color: var(--gold); }
+
+  /* ── MODAL ── */
+  .modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.75); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 92%; max-width: 640px;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 18px; }
+  .modal-close { float: right; cursor: pointer; color: var(--text2); font-size: 1.2rem; }
+
+  /* ── QA HISTORY ── */
+  .qa-item { background: var(--bg3); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .qa-q { font-weight: 700; font-size: .83rem; color: var(--gold); margin-bottom: 6px; }
+  .qa-a { font-size: .82rem; color: var(--text1); line-height: 1.55; }
+  .qa-score { font-size: .72rem; color: var(--text2); margin-top: 6px; }
+
+  /* ── SECTION PAGES ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── LOGIN ── */
+  .login-row { display: flex; flex-direction: column; gap: 14px; }
+  .login-row label { font-size: .78rem; color: var(--text2); margin-bottom: 4px; display: block; }
+  .err-msg { color: var(--red); font-size: .8rem; margin-top: 8px; min-height: 18px; }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 20px; font-size: .84rem;
+    transform: translateY(80px); opacity: 0; transition: all .3s;
+    z-index: 9999; max-width: 340px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.ok  { border-color: var(--teal); color: var(--teal); }
+  #toast.err { border-color: var(--red);  color: var(--red);  }
+
+  @media(max-width:700px) {
+    .sidebar { width: 60px; }
+    .sidebar-logo, .nav-item span { display: none; }
+    .nav-item { justify-content: center; padding: 14px; }
+    .main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ───────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>⬡ IQ Admin</h1>
+    <p>Secure admin portal — authorised personnel only</p>
+    <div class="login-row">
+      <div>
+        <label>Admin Key</label>
+        <input id="ak-input" type="password" class="inp" placeholder="Enter your ADMIN_KEY"
+               onkeydown="if(event.key==='Enter')doAdminLogin()">
+      </div>
+      <button class="btn btn-gold" onclick="doAdminLogin()" id="login-btn" style="padding:12px">Sign In</button>
+      <div class="err-msg" id="login-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ─────────────────────────────────────────────── -->
+<div id="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">⬡ IQ<span>Admin Portal</span></div>
+    <div class="nav-item active" onclick="goSection('overview')" id="nav-overview">
+      <span class="ico">◈</span><span>Overview</span>
+    </div>
+    <div class="nav-item" onclick="goSection('users')" id="nav-users">
+      <span class="ico">◉</span><span>Users</span>
+    </div>
+    <div class="nav-item" onclick="goSection('sessions')" id="nav-sessions">
+      <span class="ico">◆</span><span>Sessions</span>
+    </div>
+    <div class="nav-item" onclick="goSection('logins')" id="nav-logins">
+      <span class="ico">⬡</span><span>Login History</span>
+    </div>
+    <div class="nav-item" onclick="goSection('support')" id="nav-support">
+      <span class="ico">◎</span><span>Support</span>
+    </div>
+    <div class="nav-item" onclick="goSection('feedback')" id="nav-feedback">
+      <span class="ico">◇</span><span>Feedback</span>
+    </div>
+    <div class="nav-item" onclick="goSection('userdetail')" id="nav-userdetail">
+      <span class="ico">◈</span><span>User Detail</span>
+    </div>
+    <div class="nav-item" onclick="goSection('dbviewer')" id="nav-dbviewer">
+      <span class="ico">▣</span><span>DB Viewer</span>
+    </div>
+    <div class="nav-item" onclick="doLogout()" style="margin-top:auto;color:var(--red)">
+      <span class="ico">→</span><span>Logout</span>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- ── OVERVIEW ── -->
+    <div class="section active" id="sec-overview">
+      <div class="page-title">Overview</div>
+      <div class="page-sub" id="last-refresh">Loading…</div>
+      <div class="stat-grid" id="stat-grid"></div>
+      <div class="card">
+        <div class="card-hd">Recent Signups</div>
+        <table><thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Interviews</th><th>Last Login</th><th>Status</th></tr></thead>
+        <tbody id="tbl-recent-users"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-hd">Recent Sessions</div>
+        <table><thead><tr><th>User</th><th>Role</th><th>Score</th><th>Verdict</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody id="tbl-recent-sessions"></tbody></table>
+      </div>
+    </div>
+
+    <!-- ── USERS ── -->
+    <div class="section" id="sec-users">
+      <div class="page-title">All Users</div>
+      <div class="page-sub">Full user database with device and session data</div>
+      <div class="card">
+        <div class="card-hd">
+          Users (<span id="user-count">0</span>)
+          <input type="text" placeholder="Search name / email…" oninput="filterUsers(this.value)">
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Browser</th><th>OS</th><th>IP</th><th>Logins</th><th>Interviews</th><th>Avg Score</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tbl-users"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SESSIONS ── -->
+    <div class="section" id="sec-sessions">
+      <div class="page-title">Interview Sessions</div>
+      <div class="page-sub">All interview records with Q&A history</div>
+      <div class="card">
+        <div class="card-hd">
+          Sessions (<span id="session-count">0</span>)
+          <input type="text" placeholder="Search role / user ID…" oninput="filterSessions(this.value)">
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>User ID</th><th>Role</th><th>Score</th><th>Verdict</th><th>Hire</th><th>Duration</th><th>Date</th><th>Q&A</th></tr></thead>
+          <tbody id="tbl-sessions"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── LOGIN HISTORY ── -->
+    <div class="section" id="sec-logins">
+      <div class="page-title">Login History</div>
+      <div class="page-sub">Every login attempt — success and failed</div>
+      <div class="card">
+        <div class="card-hd">Login Log (<span id="login-count">0</span>)</div>
+        <table>
+          <thead><tr><th>User ID</th><th>Email</th><th>Status</th><th>Browser</th><th>OS</th><th>IP</th><th>Date</th></tr></thead>
+          <tbody id="tbl-logins"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── SUPPORT ── -->
+    <div class="section" id="sec-support">
+      <div class="page-title">Support Tickets</div>
+      <div class="page-sub">All user support requests</div>
+      <div class="card">
+        <div class="card-hd">Tickets (<span id="ticket-count">0</span>)</div>
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Subject</th><th>Message</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody id="tbl-tickets"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── FEEDBACK ── -->
+    <div class="section" id="sec-feedback">
+      <div class="page-title">User Feedback</div>
+      <div class="page-sub">All star ratings and comments</div>
+      <div class="card">
+        <div class="card-hd">Feedback (<span id="fb-count">0</span>)</div>
+        <table>
+          <thead><tr><th>User</th><th>Stars</th><th>Aspects</th><th>Comment</th><th>Date</th></tr></thead>
+          <tbody id="tbl-feedback"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── USER DETAIL ── -->
+    <div class="section" id="sec-userdetail">
+      <div class="page-title">User Detail Lookup</div>
+      <div class="page-sub">Full account info, all sessions, login history for any user</div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-hd">Search User by ID or Email</div>
+        <div style="padding:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <input id="ud-search" class="inp" placeholder="User ID (number) or email address…" style="flex:1;min-width:200px">
+          <button class="btn btn-gold" onclick="loadUserDetail()">Look Up</button>
+        </div>
+      </div>
+      <div id="ud-result"></div>
+    </div>
+
+    <!-- ── DB VIEWER ── -->
+    <div class="section" id="sec-dbviewer">
+      <div class="page-title">Raw Database Viewer</div>
+      <div class="page-sub">Browse any table directly — passwords and tokens are hidden for security</div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-hd">Select Table</div>
+        <div style="padding:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <select id="db-table-select" class="inp" style="width:240px">
+            <option value="users">users</option>
+            <option value="interview_sessions">interview_sessions</option>
+            <option value="login_history">login_history</option>
+            <option value="support_tickets">support_tickets</option>
+            <option value="feedback_submissions">feedback_submissions</option>
+            <option value="daily_streak">daily_streak</option>
+            <option value="skill_scores">skill_scores</option>
+            <option value="recordings">recordings</option>
+            <option value="admin_log">admin_log</option>
+          </select>
+          <input id="db-limit" class="inp" type="number" value="100" style="width:90px" placeholder="Limit">
+          <button class="btn btn-gold" onclick="loadDBTable()">View Table</button>
+          <button class="btn btn-blue" onclick="exportTableCSV()">Export CSV</button>
+        </div>
+      </div>
+      <div id="db-result"></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── Q&A MODAL ──────────────────────────────────────── -->
+<div class="modal-bg" id="qa-modal">
+  <div class="modal">
+    <span class="modal-close" onclick="closeModal('qa-modal')">✕</span>
+    <div class="modal-title" id="qa-modal-title">Interview Q&A</div>
+    <div id="qa-modal-body"></div>
+  </div>
+</div>
+
+<!-- ── BAN MODAL ─────────────────────────────────────── -->
+<div class="modal-bg" id="ban-modal">
+  <div class="modal">
+    <span class="modal-close" onclick="closeModal('ban-modal')">✕</span>
+    <div class="modal-title">Ban User</div>
+    <input id="ban-reason" class="inp" placeholder="Reason for ban…" style="margin-bottom:14px">
+    <input type="hidden" id="ban-uid">
+    <button class="btn btn-red" onclick="confirmBan()" style="width:100%;padding:11px">Confirm Ban</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let ADMIN_KEY = "";
+let DATA = null;
+let allUsers = [], allSessions = [], allLogins = [];
+
+// ── Works on ANY domain: localhost, ngrok, yourdomain.com ──
+const BASE = window.location.origin;   // e.g. https://abc.ngrok-free.app  OR  https://iqprep.com
+
+/* ── LOGIN ─────────────────────────────────────────── */
+async function doAdminLogin() {
+  const key = document.getElementById("ak-input").value.trim();
+  if (!key) return;
+  const btn = document.getElementById("login-btn");
+  btn.innerHTML = '<span class="spin"></span>';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${BASE}/api/admin/export?key=${encodeURIComponent(key)}`);
+    if (res.status === 403) {
+      document.getElementById("login-err").textContent = "Wrong admin key.";
+      btn.innerHTML = "Sign In"; btn.disabled = false; return;
+    }
+    DATA = await res.json();
+    ADMIN_KEY = key;
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app").classList.add("show");
+    renderAll();
+  } catch(e) {
+    document.getElementById("login-err").textContent = "Connection error — is the app running?";
+    btn.innerHTML = "Sign In"; btn.disabled = false;
+  }
+}
+
+async function refreshData() {
+  try {
+    const res = await fetch(`${BASE}/api/admin/export?key=${encodeURIComponent(ADMIN_KEY)}`);
+    DATA = await res.json();
+    renderAll();
+    toast("Data refreshed", "ok");
+  } catch(e) { toast("Refresh failed", "err"); }
+}
+
+function renderAll() {
+  allUsers    = DATA.users    || [];
+  allSessions = DATA.sessions || [];
+  allLogins   = DATA.login_history || [];
+
+  document.getElementById("last-refresh").textContent =
+    `Last updated: ${new Date().toLocaleTimeString()} — ${allUsers.length} users, ${allSessions.length} sessions`;
+
+  renderStats();
+  renderRecentUsers();
+  renderRecentSessions();
+  renderUsersTable(allUsers);
+  renderSessionsTable(allSessions);
+  renderLoginsTable(allLogins);
+  renderTickets(DATA.support_tickets || []);
+  renderFeedback(DATA.feedback_submissions || []);
+}
+
+/* ── STATS ─────────────────────────────────────────── */
+function renderStats() {
+  const banned    = allUsers.filter(u => u.is_banned).length;
+  const avgScore  = allSessions.length
+    ? (allSessions.reduce((s,x) => s + (x.overall_score||0), 0) / allSessions.length).toFixed(1)
+    : 0;
+  const openTix   = (DATA.support_tickets||[]).filter(t => t.status === "open").length;
+  const stats = [
+    {label:"Total Users",     val: allUsers.length,    cls:"gold"},
+    {label:"Total Sessions",  val: allSessions.length, cls:"teal"},
+    {label:"Avg Score",       val: avgScore + "/10",   cls:"blue"},
+    {label:"Banned Users",    val: banned,             cls:"red"},
+    {label:"Open Tickets",    val: openTix,            cls:"purple"},
+    {label:"Total Logins",    val: allLogins.length,   cls:"gold"},
+  ];
+  document.getElementById("stat-grid").innerHTML = stats.map(s =>
+    `<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-val ${s.cls}">${s.val}</div></div>`
+  ).join("");
+}
+
+/* ── OVERVIEW TABLES ───────────────────────────────── */
+function renderRecentUsers() {
+  const rows = allUsers.slice(0,8);
+  document.getElementById("tbl-recent-users").innerHTML = rows.map(u => `
+    <tr>
+      <td><strong>${esc(u.name)}</strong></td>
+      <td class="mono" style="color:var(--text2)">${esc(u.email)}</td>
+      <td style="color:var(--text3);font-size:.75rem">${(u.created_at||"").slice(0,10)}</td>
+      <td>${u.interview_stats?.session_count || 0}</td>
+      <td style="color:var(--text3);font-size:.75rem">${(u.last_login||"—").slice(0,16)}</td>
+      <td>${u.is_banned
+        ? '<span class="pill pill-red">Banned</span>'
+        : '<span class="pill pill-green">Active</span>'}</td>
+    </tr>`).join("");
+}
+
+function renderRecentSessions() {
+  const rows = allSessions.slice(0,8);
+  document.getElementById("tbl-recent-sessions").innerHTML = rows.map(s => {
+    const col = s.overall_score>=8?"pill-green":s.overall_score>=5?"pill-gold":"pill-red";
+    return `<tr>
+      <td class="mono" style="color:var(--text2)">#${s.user_id}</td>
+      <td><strong>${esc(s.role||"—")}</strong></td>
+      <td><span class="pill ${col}">${s.overall_score}/10</span></td>
+      <td>${esc(s.verdict||"—")}</td>
+      <td style="font-size:.75rem;color:var(--text3)">${(s.created_at||"").slice(0,10)}</td>
+      <td><button class="btn btn-blue btn-sm" onclick="showQA(${s.id},${s.user_id})">Q&A</button></td>
+    </tr>`;
+  }).join("");
+}
+
+/* ── USERS TABLE ───────────────────────────────────── */
+function renderUsersTable(users) {
+  document.getElementById("user-count").textContent = users.length;
+  document.getElementById("tbl-users").innerHTML = users.map(u => `
+    <tr>
+      <td class="mono" style="color:var(--text3)">${u.id}</td>
+      <td><strong>${esc(u.name)}</strong></td>
+      <td class="mono" style="font-size:.76rem;color:var(--text2)">${esc(u.email)}</td>
+      <td>${esc(u.last_browser||"—")}</td>
+      <td>${esc(u.last_os||"—")}</td>
+      <td class="mono" style="font-size:.72rem;color:var(--text3)">${esc(u.last_ip||"—")}</td>
+      <td>${u.total_logins||0}</td>
+      <td>${u.interview_stats?.session_count||0}</td>
+      <td>${u.interview_stats?.avg_score ? Number(u.interview_stats.avg_score).toFixed(1) : "—"}</td>
+      <td style="font-size:.75rem;color:var(--text3)">${(u.created_at||"").slice(0,10)}</td>
+      <td>${u.is_banned
+        ? '<span class="pill pill-red">Banned</span>'
+        : u.is_admin ? '<span class="pill pill-purple">Admin</span>'
+        : '<span class="pill pill-green">Active</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-blue btn-sm" onclick="showUserLogins(${u.id},'${esc(u.name)}')">Logins</button>
+        ${u.is_banned
+          ? `<button class="btn btn-green btn-sm" onclick="doUnban(${u.id})">Unban</button>`
+          : `<button class="btn btn-red btn-sm" onclick="openBan(${u.id})">Ban</button>`}
+      </td>
+    </tr>`).join("");
+}
+
+function filterUsers(q) {
+  const f = q.toLowerCase();
+  renderUsersTable(allUsers.filter(u =>
+    u.name?.toLowerCase().includes(f) || u.email?.toLowerCase().includes(f)
+  ));
+}
+
+/* ── SESSIONS TABLE ────────────────────────────────── */
+function renderSessionsTable(sessions) {
+  document.getElementById("session-count").textContent = sessions.length;
+  document.getElementById("tbl-sessions").innerHTML = sessions.map(s => {
+    const col = s.overall_score>=8?"pill-green":s.overall_score>=5?"pill-gold":"pill-red";
+    const hire = (s.hire_recommendation||"").toLowerCase();
+    const hcol = hire.includes("yes")?"pill-green":hire==="no"?"pill-red":"pill-grey";
+    const dur = s.duration_secs ? `${Math.floor(s.duration_secs/60)}m ${s.duration_secs%60}s` : "—";
+    return `<tr>
+      <td class="mono" style="color:var(--text3)">${s.id}</td>
+      <td class="mono" style="color:var(--text2)">#${s.user_id}</td>
+      <td><strong>${esc(s.role||"—")}</strong></td>
+      <td><span class="pill ${col}">${s.overall_score}/10</span></td>
+      <td>${esc(s.verdict||"—")}</td>
+      <td><span class="pill ${hcol}" style="font-size:.68rem">${esc(s.hire_recommendation||"—")}</span></td>
+      <td style="color:var(--text2)">${dur}</td>
+      <td style="font-size:.75rem;color:var(--text3)">${(s.created_at||"").slice(0,16)}</td>
+      <td><button class="btn btn-blue btn-sm" onclick="showQA(${s.id},${s.user_id})">View Q&A</button></td>
+    </tr>`;
+  }).join("");
+}
+
+function filterSessions(q) {
+  const f = q.toLowerCase();
+  renderSessionsTable(allSessions.filter(s =>
+    s.role?.toLowerCase().includes(f) || String(s.user_id).includes(f)
+  ));
+}
+
+/* ── LOGIN HISTORY ─────────────────────────────────── */
+function renderLoginsTable(logins) {
+  document.getElementById("login-count").textContent = logins.length;
+  document.getElementById("tbl-logins").innerHTML = logins.map(l => `
+    <tr>
+      <td class="mono" style="color:var(--text3)">${l.user_id||"—"}</td>
+      <td class="mono" style="font-size:.76rem;color:var(--text2)">${esc(l.email)}</td>
+      <td><span class="pill ${l.status==="success"?"pill-green":"pill-red"}">${l.status}</span></td>
+      <td>${esc(l.browser||"—")}</td>
+      <td>${esc(l.os_info||"—")}</td>
+      <td class="mono" style="font-size:.72rem;color:var(--text3)">${esc(l.ip_address||"—")}</td>
+      <td style="font-size:.75rem;color:var(--text3)">${(l.created_at||"").slice(0,16)}</td>
+    </tr>`).join("");
+}
+
+/* ── SUPPORT ───────────────────────────────────────── */
+function renderTickets(tickets) {
+  document.getElementById("ticket-count").textContent = tickets.length;
+  document.getElementById("tbl-tickets").innerHTML = tickets.map(t => `
+    <tr>
+      <td class="mono" style="color:var(--text3)">#${t.id}</td>
+      <td>${esc(t.name)}</td>
+      <td class="mono" style="font-size:.76rem">${esc(t.email)}</td>
+      <td>${esc(t.subject||"—")}</td>
+      <td style="max-width:240px;white-space:normal;font-size:.78rem;color:var(--text2)">${esc(t.message)}</td>
+      <td><span class="pill ${t.status==="open"?"pill-gold":"pill-grey"}">${t.status}</span></td>
+      <td style="font-size:.75rem;color:var(--text3)">${(t.created_at||"").slice(0,10)}</td>
+      <td>${t.status==="open"
+        ? `<button class="btn btn-green btn-sm" onclick="closeTicket(${t.id})">Close</button>`
+        : "—"}</td>
+    </tr>`).join("");
+}
+
+/* ── FEEDBACK ──────────────────────────────────────── */
+function renderFeedback(fb) {
+  document.getElementById("fb-count").textContent = fb.length;
+  document.getElementById("tbl-feedback").innerHTML = fb.map(f => `
+    <tr>
+      <td class="mono" style="font-size:.76rem;color:var(--text2)">${esc(f.user_email||"guest")}</td>
+      <td>${"★".repeat(f.stars||0)}<span style="color:var(--text3)">${"☆".repeat(5-(f.stars||0))}</span></td>
+      <td style="font-size:.76rem;color:var(--text2)">${esc(f.aspects||"—")}</td>
+      <td style="max-width:240px;white-space:normal;font-size:.78rem">${esc(f.comment||"—")}</td>
+      <td style="font-size:.75rem;color:var(--text3)">${(f.created_at||"").slice(0,10)}</td>
+    </tr>`).join("");
+}
+
+/* ── Q&A MODAL ─────────────────────────────────────── */
+async function showQA(sessionId, userId) {
+  document.getElementById("qa-modal-title").textContent = `Session #${sessionId} — Full Q&A`;
+  document.getElementById("qa-modal-body").innerHTML = '<div style="color:var(--text2);padding:20px 0">Loading…</div>';
+  document.getElementById("qa-modal").classList.add("show");
+  try {
+    const res = await fetch(`${BASE}/api/admin/session/${sessionId}/qa?user_id=${userId}&key=${encodeURIComponent(ADMIN_KEY)}`);
+    const d = await res.json();
+    if (!d.qa_history || d.qa_history.length === 0) {
+      // Fallback: show from sessions data
+      const s = allSessions.find(x => x.id === sessionId);
+      if (s && s.qa_history) {
+        try {
+          const qa = JSON.parse(s.qa_history);
+          renderQAModal(qa, d);
+          return;
+        } catch(e) {}
+      }
+      document.getElementById("qa-modal-body").innerHTML =
+        '<div style="color:var(--text2)">No Q&A history stored for this session.</div>';
+      return;
+    }
+    renderQAModal(d.qa_history, d);
+  } catch(e) {
+    document.getElementById("qa-modal-body").innerHTML =
+      '<div style="color:var(--red)">Failed to load Q&A.</div>';
+  }
+}
+
+function renderQAModal(qa, meta) {
+  const header = meta ? `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <span class="pill pill-blue">${esc(meta.role||"")}</span>
+      <span class="pill pill-gold">Score: ${meta.score||"?"}/10</span>
+      <span class="pill pill-grey">${(meta.date||"").slice(0,10)}</span>
+    </div>` : "";
+  document.getElementById("qa-modal-body").innerHTML = header +
+    (qa.length ? qa.map(item => `
+      <div class="qa-item">
+        <div class="qa-q">Q${item.q_num || ""}: ${esc(item.question||"")}</div>
+        <div class="qa-a">${esc(item.answer||"[No answer recorded]")}</div>
+        ${item.score !== undefined ? `<div class="qa-score">Score: ${item.score}/10 — ${esc(item.feedback||"")}</div>` : ""}
+      </div>`).join("")
+    : '<div style="color:var(--text2)">No Q&A found.</div>');
+}
+
+async function showUserLogins(userId, name) {
+  document.getElementById("qa-modal-title").textContent = `Login History — ${name}`;
+  document.getElementById("qa-modal-body").innerHTML = '<div style="color:var(--text2);padding:20px 0">Loading…</div>';
+  document.getElementById("qa-modal").classList.add("show");
+  const userLogins = allLogins.filter(l => l.user_id === userId);
+  document.getElementById("qa-modal-body").innerHTML = userLogins.length
+    ? `<table style="width:100%">
+        <thead><tr><th>Status</th><th>Browser</th><th>OS</th><th>IP</th><th>Date</th></tr></thead>
+        <tbody>${userLogins.map(l => `<tr>
+          <td><span class="pill ${l.status==="success"?"pill-green":"pill-red"}">${l.status}</span></td>
+          <td>${esc(l.browser||"—")}</td><td>${esc(l.os_info||"—")}</td>
+          <td class="mono" style="font-size:.72rem">${esc(l.ip_address||"—")}</td>
+          <td style="font-size:.75rem;color:var(--text3)">${(l.created_at||"").slice(0,16)}</td>
+        </tr>`).join("")}</tbody></table>`
+    : '<div style="color:var(--text2)">No login history found.</div>';
+}
+
+/* ── BAN / UNBAN ───────────────────────────────────── */
+function openBan(uid) {
+  document.getElementById("ban-uid").value = uid;
+  document.getElementById("ban-reason").value = "";
+  document.getElementById("ban-modal").classList.add("show");
+}
+
+async function confirmBan() {
+  const uid    = document.getElementById("ban-uid").value;
+  const reason = document.getElementById("ban-reason").value || "Violation of terms";
+  const fd = new FormData();
+  fd.append("key", ADMIN_KEY);
+  fd.append("reason", reason);
+  try {
+    const res = await fetch(`${BASE}/api/admin/ban/${uid}`, { method:"POST", body: fd });
+    const d   = await res.json();
+    if (d.ok) { toast("User banned", "ok"); closeModal("ban-modal"); await refreshData(); }
+    else toast("Ban failed", "err");
+  } catch(e) { toast("Error", "err"); }
+}
+
+async function doUnban(uid) {
+  if (!confirm("Unban this user?")) return;
+  const fd = new FormData(); fd.append("key", ADMIN_KEY);
+  try {
+    const res = await fetch(`${BASE}/api/admin/unban/${uid}`, { method:"POST", body: fd });
+    const d   = await res.json();
+    if (d.ok) { toast("User unbanned", "ok"); await refreshData(); }
+    else toast("Failed", "err");
+  } catch(e) { toast("Error", "err"); }
+}
+
+/* ── TICKET ────────────────────────────────────────── */
+async function closeTicket(ticketId) {
+  const fd = new FormData(); fd.append("key", ADMIN_KEY);
+  try {
+    const res = await fetch(`${BASE}/api/admin/ticket/${ticketId}/close`, { method:"POST", body: fd });
+    const d   = await res.json();
+    if (d.ok) { toast("Ticket closed", "ok"); await refreshData(); }
+  } catch(e) { toast("Error", "err"); }
+}
+
+/* ── NAV ───────────────────────────────────────────── */
+function goSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("sec-"+id).classList.add("active");
+  document.getElementById("nav-"+id).classList.add("active");
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove("show"); }
+function doLogout() { ADMIN_KEY=""; DATA=null; location.reload(); }
+
+/* ── HELPERS ───────────────────────────────────────── */
+function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function toast(msg, type="ok") {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = "toast show " + type;
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+/* ── USER DETAIL LOOKUP ────────────────────────────── */
+async function loadUserDetail() {
+  const q   = document.getElementById("ud-search").value.trim();
+  const res = document.getElementById("ud-result");
+  if (!q) { toast("Enter a user ID or email", "err"); return; }
+  res.innerHTML = '<div style="color:var(--text2);padding:20px">Loading…</div>';
+
+  // Find matching user from already-loaded data first
+  let user = null;
+  if (/^\d+$/.test(q)) {
+    user = allUsers.find(u => u.id == parseInt(q));
+  } else {
+    user = allUsers.find(u => u.email?.toLowerCase() === q.toLowerCase());
+  }
+  if (!user) {
+    res.innerHTML = '<div style="color:var(--red);padding:20px">User not found. Make sure you refreshed data.</div>';
+    return;
+  }
+
+  try {
+    const r = await fetch(`${BASE}/api/admin/user-detail/${user.id}?key=${encodeURIComponent(ADMIN_KEY)}`);
+    const d = await r.json();
+    renderUserDetail(d);
+  } catch(e) {
+    res.innerHTML = '<div style="color:var(--red);padding:20px">Failed to load user detail.</div>';
+  }
+}
+
+function renderUserDetail(d) {
+  const u        = d.user || {};
+  const sessions = d.sessions || [];
+  const logins   = d.logins   || [];
+  const res      = document.getElementById("ud-result");
+
+  const banned = u.is_banned
+    ? `<span class="pill pill-red">BANNED — ${esc(u.ban_reason||"")}</span>`
+    : '<span class="pill pill-green">Active</span>';
+
+  res.innerHTML = `
+    <!-- Account Info -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd">Account Information — ${esc(u.name)}</div>
+      <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        ${infoRow("User ID",      u.id)}
+        ${infoRow("Full Name",    u.name)}
+        ${infoRow("Email",        u.email)}
+        ${infoRow("Status",       banned, true)}
+        ${infoRow("Is Admin",     u.is_admin ? "✓ Yes" : "No")}
+        ${infoRow("Joined",       (u.created_at||"").slice(0,10))}
+        ${infoRow("Last Login",   (u.last_login||"—").slice(0,16))}
+        ${infoRow("Total Logins", u.total_logins||0)}
+        ${infoRow("Browser",      u.last_browser||"—")}
+        ${infoRow("OS",           u.last_os||"—")}
+        ${infoRow("Last IP",      u.last_ip||"—")}
+        ${infoRow("Last Device",  u.last_device ? (u.last_device||"").slice(0,60)+"…" : "—")}
+        ${infoRow("Password",     "● ● ● ● ● ● ● ● (hashed — not visible)")}
+        ${infoRow("Avatar Color", `<span style="display:inline-block;width:14px;height:14px;background:${esc(u.avatar_color||'#666')};border-radius:50%;margin-right:6px;vertical-align:middle"></span>${esc(u.avatar_color||"")}`, true)}
+      </div>
+      <div style="padding:0 16px 16px;display:flex;gap:8px;flex-wrap:wrap">
+        ${u.is_banned
+          ? `<button class="btn btn-green" onclick="doUnban(${u.id})">Unban User</button>`
+          : `<button class="btn btn-red" onclick="openBan(${u.id})">Ban User</button>`}
+        <button class="btn btn-red" onclick="if(confirm('Delete user permanently?'))deleteUserAdmin(${u.id})">Delete Account</button>
+      </div>
+    </div>
+
+    <!-- All Sessions -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd">All Interview Sessions (${sessions.length})</div>
+      ${sessions.length ? `<table>
+        <thead><tr><th>ID</th><th>Role</th><th>Score</th><th>Verdict</th><th>Hire</th><th>Duration</th><th>Date</th><th>Q&A</th></tr></thead>
+        <tbody>${sessions.map(s => {
+          const col = s.overall_score>=8?"pill-green":s.overall_score>=5?"pill-gold":"pill-red";
+          const dur = s.duration_secs ? Math.floor(s.duration_secs/60)+"m "+s.duration_secs%60+"s" : "—";
+          return `<tr>
+            <td class="mono" style="color:var(--text3)">${s.id}</td>
+            <td><strong>${esc(s.role||"—")}</strong></td>
+            <td><span class="pill ${col}">${s.overall_score}/10</span></td>
+            <td>${esc(s.verdict||"—")}</td>
+            <td style="font-size:.75rem">${esc(s.hire_recommendation||"—")}</td>
+            <td style="color:var(--text2)">${dur}</td>
+            <td style="font-size:.75rem;color:var(--text3)">${(s.created_at||"").slice(0,10)}</td>
+            <td><button class="btn btn-blue btn-sm" onclick="showQA(${s.id},${s.user_id})">View Q&A</button></td>
+          </tr>`;
+        }).join("")}</tbody></table>`
+      : '<div style="padding:16px;color:var(--text2)">No interviews yet.</div>'}
+    </div>
+
+    <!-- Login History -->
+    <div class="card">
+      <div class="card-hd">Login History (${logins.length})</div>
+      ${logins.length ? `<table>
+        <thead><tr><th>Status</th><th>Browser</th><th>OS</th><th>IP Address</th><th>Device</th><th>Date</th></tr></thead>
+        <tbody>${logins.map(l => `<tr>
+          <td><span class="pill ${l.status==="success"?"pill-green":"pill-red"}">${l.status}</span></td>
+          <td>${esc(l.browser||"—")}</td>
+          <td>${esc(l.os_info||"—")}</td>
+          <td class="mono" style="font-size:.72rem;color:var(--text2)">${esc(l.ip_address||"—")}</td>
+          <td style="font-size:.72rem;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis">${esc((l.device||"—").slice(0,60))}</td>
+          <td style="font-size:.75rem;color:var(--text3)">${(l.created_at||"").slice(0,16)}</td>
+        </tr>`).join("")}</tbody></table>`
+      : '<div style="padding:16px;color:var(--text2)">No login history.</div>'}
+    </div>`;
+}
+
+function infoRow(label, value, isHtml=false) {
+  return `<div style="background:var(--bg3);border-radius:8px;padding:10px 14px">
+    <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">${label}</div>
+    <div style="font-size:.85rem;font-weight:600">${isHtml ? value : esc(String(value||"—"))}</div>
+  </div>`;
+}
+
+async function deleteUserAdmin(uid) {
+  const fd = new FormData();
+  fd.append("key", ADMIN_KEY);
+  try {
+    await fetch(`${BASE}/api/admin/user/${uid}?key=${encodeURIComponent(ADMIN_KEY)}`, { method:"DELETE" });
+    toast("User deleted", "ok");
+    await refreshData();
+    document.getElementById("ud-result").innerHTML = '<div style="color:var(--teal);padding:20px">User deleted.</div>';
+  } catch(e) { toast("Delete failed", "err"); }
+}
+
+/* ── DB VIEWER ─────────────────────────────────────── */
+let lastTableData = null;
+
+async function loadDBTable() {
+  const table = document.getElementById("db-table-select").value;
+  const limit = document.getElementById("db-limit").value || 100;
+  const res   = document.getElementById("db-result");
+  res.innerHTML = '<div style="color:var(--text2);padding:20px">Loading table…</div>';
+  try {
+    const r = await fetch(`${BASE}/api/admin/db-table/${table}?key=${encodeURIComponent(ADMIN_KEY)}&limit=${limit}`);
+    const d = await r.json();
+    lastTableData = d;
+    if (!d.rows || d.rows.length === 0) {
+      res.innerHTML = '<div style="color:var(--text2);padding:20px">Table is empty.</div>';
+      return;
+    }
+    const cols = Object.keys(d.rows[0]);
+    res.innerHTML = `
+      <div class="card">
+        <div class="card-hd">
+          ${table} — ${d.count} rows
+          <span style="color:var(--text3);font-size:.75rem">(passwords & tokens hidden)</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join("")}</tr></thead>
+            <tbody>${d.rows.map(row=>`<tr>${cols.map(col=>{
+              const v = row[col];
+              const s = v === null ? '<span style="color:var(--text3)">null</span>'
+                : String(v).length > 80 ? `<span title="${esc(String(v))}">${esc(String(v).slice(0,80))}…</span>`
+                : esc(String(v));
+              return `<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s}</td>`;
+            }).join("")}</tr>`).join("")}</tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch(e) {
+    res.innerHTML = `<div style="color:var(--red);padding:20px">Failed: ${e.message}</div>`;
+  }
+}
+
+function exportTableCSV() {
+  if (!lastTableData || !lastTableData.rows?.length) {
+    toast("Load a table first", "err"); return;
+  }
+  const rows = lastTableData.rows;
+  const cols = Object.keys(rows[0]);
+  const csv  = [cols.join(","),
+    ...rows.map(r => cols.map(c => `"${String(r[c]||"").replace(/"/g,'""')}"`).join(","))
+  ].join("\n");
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = `${lastTableData.table}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast("CSV downloaded", "ok");
+}
+
+// Keyboard shortcut: Enter to login
+document.getElementById("ak-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") doAdminLogin();
+});
+</script>
+</body>
+</html>
